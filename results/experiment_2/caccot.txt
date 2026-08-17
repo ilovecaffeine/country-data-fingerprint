@@ -1,0 +1,13 @@
+identity_stability.csv
+các cột dạng wide:
+country_code_3
+country_name
+2019 2020 ... 2024
+✓ nếu classify đúng 
+✗ nếu classify sai (ghi thêm tên nước sai)
+accuracy (số đúng trên tổng)
+
+
+confusion_matrix.csv
+cột là predicted + mã 
+hàng là actual + mã

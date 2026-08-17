@@ -1,0 +1,174 @@
+# 1. PRIMARY DATA PROVIDERS & REPOSITORIES
+providers:
+  world_bank_wdi:
+    name: "World Development Indicators (WDI)"
+    publisher: "The World Bank Group"
+    url: "https://databank.worldbank.org/source/world-development-indicators"
+    license: "Creative Commons Attribution 4.0 International (CC BY 4.0)"
+    access_date: "2025-08-17"
+    citation_apa: "World Bank. (2025). World Development Indicators [Data set]. The World Bank Group."
+    bibtex: |
+      @misc{worldbank2025wdi,
+        author = {{World Bank}},
+        title = {World Development Indicators},
+        year = {2025},
+        publisher = {The World Bank Group},
+        url = {https://databank.worldbank.org/source/world-development-indicators}
+      }
+  our_world_in_data:
+      name: "Our World in Data (OWID)"
+      publisher: "Global Change Data Lab"
+      url: "https://ourworldindata.org"
+      license: "Creative Commons Attribution 4.0 International (CC BY 4.0)"
+      access_date: "2025-08-17"
+      citation_apa: "Our World in Data. (2025). Our World in Data [Data set]. Global Change Data Lab."
+      bibtex: |
+        @misc{owid2025data,
+          author = {{Our World in Data}},
+          title = {Our World in Data},
+          year = {2025},
+          publisher = {Global Change Data Lab},
+          url = {https://ourworldindata.org}
+        }
+
+# 2. DETAILED MAPPING FOR ALL 20 FEATURE INDICATORS
+feature_sources:
+  gdp_per_capita_ppp:
+    provider: "world_bank_wdi"
+    series_code: "NY.GDP.PCAP.PP.KD"
+    series_name: "GDP per capita, PPP (constant 2021 international $)"
+    folder: "API_NY.GDP.PCAP.PP.KD_DS2_en_csv_v2_33608"
+    filename: "API_NY.GDP.PCAP.PP.KD_DS2_en_csv_v2_33608.csv"
+
+  population_total:
+    provider: "world_bank_wdi"
+    series_code: "SP.POP.TOTL"
+    series_name: "Population, total"
+    folder: "API_SP.POP.TOTL_DS2_en_csv_v2_33112"
+    filename: "API_SP.POP.TOTL_DS2_en_csv_v2_33112.csv"
+
+  urban_population_pct:
+    provider: "world_bank_wdi"
+    series_code: "SP.URB.TOTL.IN.ZS"
+    series_name: "Urban population (% of total population)"
+    folder: "API_SP.URB.TOTL.IN.ZS_DS2_en_csv_v2_33901"
+    filename: "API_SP.URB.TOTL.IN.ZS_DS2_en_csv_v2_33901.csv"
+
+  co2_emissions_per_capita:
+    provider: "our_world_in_data"
+    series_code: "co-emissions-per-capita"
+    series_name: "CO2 emissions per capita (metric tons per person)"
+    folder: "co-emissions-per-capita"
+    filename: "co-emissions-per-capita.csv"
+
+  mean_years_of_schooling_adults:
+    provider: "our_world_in_data"
+    series_code: "years-of-schooling"
+    series_name: "Average years of schooling among adults (years)"
+    folder: "years-of-schooling"
+    filename: "average-years-of-schooling-among-adults.csv"
+
+  agriculture_pct_gdp:
+    provider: "world_bank_wdi"
+    series_code: "NV.AGR.TOTL.ZS"
+    series_name: "Agriculture, forestry, and fishing, value added (% of GDP)"
+    folder: "API_NV.AGR.TOTL.ZS_DS2_en_csv_v2_33230"
+    filename: "API_NV.AGR.TOTL.ZS_DS2_en_csv_v2_33230.csv"
+
+  under_5_mortality_rate_per_1000:
+    provider: "world_bank_wdi"
+    series_code: "SH.DYN.MORT"
+    series_name: "Mortality rate, under-5 (per 1,000 live births)"
+    folder: "API_SH.DYN.MORT_DS2_en_csv_v2_34194"
+    filename: "API_SH.DYN.MORT_DS2_en_csv_v2_34194.csv"
+
+  fertility_rate_births_per_woman:
+    provider: "world_bank_wdi"
+    series_code: "SP.DYN.TFRT.IN"
+    series_name: "Fertility rate, total (births per woman)"
+    folder: "API_SP.DYN.TFRT.IN_DS2_EN_csv_v2_33381"
+    filename: "API_SP.DYN.TFRT.IN_DS2_EN_csv_v2_33381.csv"
+
+  trade_pct_gdp:
+    provider: "world_bank_wdi"
+    series_code: "NE.TRD.GNFS.ZS"
+    series_name: "Trade (% of GDP)"
+    folder: "API_NE.TRD.GNFS.ZS_DS2_en_csv_v2_171"
+    filename: "API_NE.TRD.GNFS.ZS_DS2_en_csv_v2_171.csv"
+
+  industry_pct_gdp:
+    provider: "world_bank_wdi"
+    series_code: "NV.IND.TOTL.ZS"
+    series_name: "Industry (including construction), value added (% of GDP)"
+    folder: "API_NV.IND.TOTL.ZS_DS2_en_csv_v2_102950"
+    filename: "API_NV.IND.TOTL.ZS_DS2_en_csv_v2_102950.csv"
+
+  unemployment_rate_pct:
+    provider: "world_bank_wdi"
+    series_code: "SL.UEM.TOTL.ZS"
+    series_name: "Unemployment, total (% of total labor force) (modeled ILO estimate)"
+    folder: "API_SL.UEM.TOTL.ZS_DS2_en_csv_v2_33398"
+    filename: "API_SL.UEM.TOTL.ZS_DS2_en_csv_v2_33398.csv"
+
+  life_expectancy_years:
+    provider: "world_bank_wdi"
+    series_code: "SP.DYN.LE00.IN"
+    series_name: "Life expectancy at birth, total (years)"
+    folder: "API_SP.DYN.LE00.IN_DS2_en_csv_v2_408"
+    filename: "API_SP.DYN.LE00.IN_DS2_en_csv_v2_408.csv"
+
+  general_government_final_consumption_expenditure_pct_gdp:
+    provider: "world_bank_wdi"
+    series_code: "NE.CON.GOVT.ZS"
+    series_name: "General government final consumption expenditure (% of GDP)"
+    folder: "API_NE.CON.GOVT.ZS_DS2_en_csv_v2_38789"
+    filename: "API_NE.CON.GOVT.ZS_DS2_en_csv_v2_38789.csv"
+
+  services_pct_gdp:
+    provider: "world_bank_wdi"
+    series_code: "NV.SRV.TOTL.ZS"
+    series_name: "Services, value added (% of GDP)"
+    folder: "API_NV.SRV.TOTL.ZS_DS2_en_csv_v2_35142"
+    filename: "API_NV.SRV.TOTL.ZS_DS2_en_csv_v2_35142.csv"
+
+  population_growth_annual_pct:
+    provider: "world_bank_wdi"
+    series_code: "SP.POP.GROW"
+    series_name: "Population growth (annual %)"
+    folder: "API_SP.POP.GROW_DS2_en_csv_v2_35913"
+    filename: "API_SP.POP.GROW_DS2_en_csv_v2_35913.csv"
+
+  access_to_electricity_pct:
+    provider: "world_bank_wdi"
+    series_code: "EG.ELC.ACCS.ZS"
+    series_name: "Access to electricity (% of population)"
+    folder: "API_EG.ELC.ACCS.ZS_DS2_en_csv_v2_33377"
+    filename: "API_EG.ELC.ACCS.ZS_DS2_en_csv_v2_33377.csv"
+
+  urban_population_growth_annual_pct:
+    provider: "world_bank_wdi"
+    series_code: "SP.URB.GROW"
+    series_name: "Urban population growth (annual %)"
+    folder: "API_SP.URB.GROW_DS2_en_csv_v2_38007"
+    filename: "API_SP.URB.GROW_DS2_en_csv_v2_38007.csv"
+
+  internet_users_pct_population:
+    provider: "world_bank_wdi"
+    series_code: "IT.NET.USER.ZS"
+    series_name: "Individuals using the Internet (% of population)"
+    folder: "API_IT.NET.USER.ZS_DS2_en_csv_v2_33086"
+    filename: "API_IT.NET.USER.ZS_DS2_en_csv_v2_33086.csv"
+
+  inflation_gdp_deflator_annual_pct:
+    provider: "world_bank_wdi"
+    series_code: "NY.GDP.DEFL.KD.ZG"
+    series_name: "Inflation, GDP deflator (annual %)"
+    folder: "API_NY.GDP.DEFL.KD.ZG_DS2_en_csv_v2_34350"
+    filename: "API_NY.GDP.DEFL.KD.ZG_DS2_en_csv_v2_34350.csv"
+
+  gdp_growth_annual_pct:
+    provider: "world_bank_wdi"
+    series_code: "NY.GDP.PCAP.KD.ZG"
+    series_name: "GDP per capita growth (annual %)"
+    folder: "API_NY.GDP.PCAP.KD.ZG_DS2_en_csv_v2_33455"
+    filename: "API_NY.GDP.PCAP.KD.ZG_DS2_en_csv_v2_33455.csv"

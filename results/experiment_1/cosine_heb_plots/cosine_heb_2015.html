@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Hierarchical Edge Bundling (Cosine Similarity) - Year 2015 (Top-3 Neighbors)</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 20px;
+        }
+        h2 {
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+        .node {
+            font-size: 10px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s, font-size 0.2s;
+        }
+        .link {
+            stroke: #7f8c8d;
+            stroke-opacity: 0.25;
+            fill: none;
+            pointer-events: none;
+            stroke-width: 1px;
+            transition: stroke-opacity 0.2s, stroke-width 0.2s;
+        }
+    </style>
+</head>
+<body>
+    <h2>Hierarchical Edge Bundling (Cosine Similarity) - Year 2015 (Top-3 Neighbors)</h2>
+    <div id="chart"></div>
+
+    <script>
+        const data = {"name": "World", "children": [{"name": "Africa", "children": [{"name": "AGO", "imports": ["World.Africa.NAM", "World.Africa.MRT", "World.Africa.GNQ", "World.Africa.GAB", "World.Africa.COG", "World.Africa.COD"]}, {"name": "BEN", "imports": ["World.Africa.GMB", "World.Africa.MDG", "World.Africa.MLI", "World.Africa.CIV", "World.Africa.NER", "World.Africa.SLE", "World.Africa.COM"]}, {"name": "BFA", "imports": ["World.Africa.ZMB", "World.Africa.GIN", "World.Africa.MOZ", "World.Africa.TGO", "World.Africa.MLI", "World.Africa.CAF", "World.Africa.NER", "World.Africa.MRT", "World.Africa.ZWE", "World.Africa.SEN", "World.Africa.COD"]}, {"name": "BWA", "imports": ["World.Africa.ZAF", "World.Africa.LBY", "World.Africa.NAM", "World.Africa.GNQ"]}, {"name": "CAF", "imports": ["World.Africa.BFA", "World.Africa.TGO", "World.Africa.GIN"]}, {"name": "CIV", "imports": ["World.Africa.BEN", "World.North America.GTM", "World.Africa.CMR", "World.Africa.MLI"]}, {"name": "CMR", "imports": ["World.Africa.TCD", "World.Africa.MLI", "World.Africa.UGA", "World.Africa.CIV", "World.South America.BOL", "World.Africa.COD", "World.Africa.TZA"]}, {"name": "COD", "imports": ["World.Africa.ZMB", "World.Africa.GIN", "World.Africa.BFA", "World.Africa.CMR", "World.Africa.AGO"]}, {"name": "COG", "imports": ["World.Asia.MNG", "World.Asia.IRQ", "World.Africa.GNQ", "World.Africa.GAB", "World.Africa.AGO"]}, {"name": "COM", "imports": ["World.Africa.SLE", "World.Africa.BEN", "World.Africa.GMB"]}, {"name": "CPV", "imports": ["World.Africa.DJI", "World.North America.SLV", "World.Asia.PSE", "World.Africa.STP", "World.Oceania.FJI", "World.North America.BLZ"]}, {"name": "DJI", "imports": ["World.Africa.STP", "World.Africa.NAM", "World.Africa.CPV"]}, {"name": "DZA", "imports": ["World.Asia.SAU", "World.Asia.IRN", "World.Africa.MAR", "World.Asia.IRQ", "World.Africa.LBY"]}, {"name": "EGY", "imports": ["World.Asia.IDN", "World.Asia.UZB", "World.Asia.IND"]}, {"name": "ETH", "imports": ["World.Africa.KEN", "World.Africa.UGA", "World.Asia.KHM", "World.Africa.MLI", "World.Africa.RWA", "World.Asia.PAK", "World.Africa.TZA"]}, {"name": "GAB", "imports": ["World.Asia.MNG", "World.Asia.IRQ", "World.Africa.GNQ", "World.Africa.AGO", "World.Africa.COG"]}, {"name": "GHA", "imports": ["World.Africa.UGA", "World.North America.HTI", "World.Africa.TZA"]}, {"name": "GIN", "imports": ["World.Africa.ZMB", "World.Africa.MOZ", "World.Africa.MLI", "World.Africa.CAF", "World.Africa.BFA", "World.Africa.ZWE", "World.Africa.COD"]}, {"name": "GMB", "imports": ["World.Asia.NPL", "World.Africa.SLE", "World.Africa.COM", "World.North America.HTI", "World.Africa.GNB", "World.Africa.BEN"]}, {"name": "GNB", "imports": ["World.Africa.MWI", "World.Africa.GMB", "World.Oceania.SLB", "World.Africa.MOZ", "World.Africa.MDG", "World.Africa.TGO", "World.North America.NIC"]}, {"name": "GNQ", "imports": ["World.Asia.MNG", "World.Africa.BWA", "World.Africa.GAB", "World.Africa.AGO", "World.Africa.COG"]}, {"name": "KEN", "imports": ["World.Africa.MWI", "World.Africa.MDG", "World.Africa.ETH", "World.North America.GTM", "World.Asia.PAK"]}, {"name": "LBY", "imports": ["World.Africa.ZAF", "World.Africa.BWA", "World.Africa.DZA"]}, {"name": "LSO", "imports": ["World.Africa.ZMB", "World.Africa.SWZ", "World.Africa.NAM"]}, {"name": "MAR", "imports": ["World.Asia.NPL", "World.Asia.IND", "World.Africa.DZA"]}, {"name": "MDG", "imports": ["World.Africa.MWI", "World.Oceania.SLB", "World.Africa.MOZ", "World.Africa.KEN", "World.Africa.TGO", "World.North America.HND", "World.Africa.NER", "World.Africa.ZWE", "World.Africa.GNB", "World.Africa.BEN"]}, {"name": "MLI", "imports": ["World.Africa.GIN", "World.Africa.TCD", "World.Africa.ETH", "World.Africa.TGO", "World.Africa.UGA", "World.Africa.CIV", "World.Africa.BFA", "World.Africa.NER", "World.Africa.SEN", "World.Africa.CMR", "World.Africa.BEN", "World.Africa.TZA"]}, {"name": "MOZ", "imports": ["World.Africa.GIN", "World.Africa.MDG", "World.Asia.TLS", "World.North America.HND", "World.Africa.BFA", "World.Africa.GNB"]}, {"name": "MRT", "imports": ["World.Africa.BFA", "World.Africa.RWA", "World.Africa.AGO", "World.Africa.SEN"]}, {"name": "MUS", "imports": ["World.Europe.LTU", "World.Europe.LVA", "World.Asia.CYP"]}, {"name": "MWI", "imports": ["World.Africa.KEN", "World.Asia.TLS", "World.Africa.GNB", "World.Africa.MDG"]}, {"name": "NAM", "imports": ["World.Africa.SWZ", "World.Africa.LSO", "World.Africa.DJI", "World.Africa.BWA", "World.Africa.AGO"]}, {"name": "NER", "imports": ["World.Oceania.SLB", "World.Africa.TCD", "World.Africa.MDG", "World.Africa.MLI", "World.Africa.BFA", "World.Africa.BEN"]}, {"name": "RWA", "imports": ["World.Africa.MRT", "World.Africa.ETH", "World.Africa.SEN"]}, {"name": "SEN", "imports": ["World.Africa.MRT", "World.Africa.RWA", "World.Africa.MLI", "World.Africa.BFA"]}, {"name": "SLE", "imports": ["World.Africa.GMB", "World.Africa.BEN", "World.Africa.COM", "World.North America.HTI"]}, {"name": "STP", "imports": ["World.Asia.PSE", "World.North America.BLZ", "World.Africa.DJI", "World.Africa.CPV"]}, {"name": "SWZ", "imports": ["World.Africa.ZWE", "World.Africa.NAM", "World.Africa.LSO"]}, {"name": "TCD", "imports": ["World.Africa.NER", "World.Africa.CMR", "World.Africa.MLI", "World.South America.BOL"]}, {"name": "TGO", "imports": ["World.Africa.MDG", "World.Africa.MLI", "World.Africa.CAF", "World.Africa.BFA", "World.South America.BOL", "World.Africa.GNB", "World.Asia.BTN"]}, {"name": "TUN", "imports": ["World.Europe.GRC", "World.Europe.SRB", "World.Europe.MKD", "World.Asia.PSE"]}, {"name": "TZA", "imports": ["World.Asia.TJK", "World.Africa.ETH", "World.Africa.GHA", "World.Asia.KHM", "World.Africa.UGA", "World.Africa.MLI", "World.Africa.CMR", "World.Asia.PAK"]}, {"name": "UGA", "imports": ["World.Asia.TJK", "World.Africa.ETH", "World.Africa.GHA", "World.Asia.KHM", "World.Africa.MLI", "World.Africa.CMR", "World.Africa.TZA"]}, {"name": "ZAF", "imports": ["World.Europe.RUS", "World.Africa.LBY", "World.Africa.BWA"]}, {"name": "ZMB", "imports": ["World.Africa.BFA", "World.Africa.COD", "World.Africa.GIN", "World.Africa.LSO"]}, {"name": "ZWE", "imports": ["World.Africa.BFA", "World.Africa.GIN", "World.Africa.SWZ", "World.Africa.MDG"]}]}, {"name": "Europe", "children": [{"name": "ALB", "imports": ["World.Europe.BIH", "World.Asia.ARM", "World.Europe.MKD"]}, {"name": "AUT", "imports": ["World.Europe.BEL", "World.Europe.NOR", "World.Europe.DNK", "World.Europe.FIN", "World.Europe.DEU", "World.Europe.SVN", "World.Europe.EST", "World.Europe.CHE"]}, {"name": "BEL", "imports": ["World.Europe.SWE", "World.Europe.DNK", "World.Asia.SGP", "World.Europe.AUT", "World.Europe.NLD"]}, {"name": "BGR", "imports": ["World.Europe.LVA", "World.Europe.ROU", "World.Europe.LTU", "World.Europe.HUN"]}, {"name": "BIH", "imports": ["World.Europe.ALB", "World.Europe.HRV", "World.Europe.MKD", "World.Europe.SRB"]}, {"name": "BLR", "imports": ["World.Europe.RUS", "World.Asia.KOR", "World.Europe.UKR"]}, {"name": "CHE", "imports": ["World.Asia.SGP", "World.Europe.DEU", "World.Europe.AUT", "World.North America.PAN"]}, {"name": "CZE", "imports": ["World.Europe.SVK", "World.Asia.MYS", "World.Europe.IRL", "World.Europe.POL", "World.Europe.HUN"]}, {"name": "DEU", "imports": ["World.Asia.JPN", "World.North America.CAN", "World.Europe.GBR", "World.Europe.AUT", "World.Europe.RUS", "World.Asia.KOR", "World.Europe.CHE"]}, {"name": "DNK", "imports": ["World.Europe.SWE", "World.Europe.BEL", "World.Europe.FIN", "World.Europe.AUT", "World.Europe.NLD", "World.Europe.ISL"]}, {"name": "ESP", "imports": ["World.Europe.GRC", "World.Europe.PRT", "World.Europe.FRA", "World.North America.CRI", "World.Europe.ITA"]}, {"name": "EST", "imports": ["World.Europe.LTU", "World.Europe.AUT", "World.Europe.SVN", "World.Europe.ISL", "World.Europe.LVA"]}, {"name": "FIN", "imports": ["World.Europe.SWE", "World.Europe.NOR", "World.Europe.AUT", "World.Europe.DNK"]}, {"name": "FRA", "imports": ["World.Europe.GBR", "World.Europe.ESP", "World.Europe.ITA"]}, {"name": "GBR", "imports": ["World.Asia.JPN", "World.North America.CAN", "World.Europe.DEU", "World.Europe.FRA", "World.North America.USA"]}, {"name": "GRC", "imports": ["World.Africa.TUN", "World.Europe.PRT", "World.Europe.ESP", "World.North America.CRI", "World.Europe.ITA"]}, {"name": "HRV", "imports": ["World.Europe.MNE", "World.Europe.SRB", "World.Europe.PRT", "World.Europe.BIH", "World.Europe.LVA"]}, {"name": "HUN", "imports": ["World.Europe.BGR", "World.Europe.SVK", "World.Europe.LTU", "World.Europe.IRL", "World.Europe.POL", "World.Europe.CZE"]}, {"name": "IRL", "imports": ["World.Europe.HUN", "World.Europe.CZE", "World.Europe.SVK"]}, {"name": "ISL", "imports": ["World.Europe.EST", "World.Oceania.NZL", "World.Europe.DNK"]}, {"name": "ITA", "imports": ["World.Europe.GRC", "World.Europe.FRA", "World.Europe.ESP", "World.Europe.PRT"]}, {"name": "LTU", "imports": ["World.Europe.BGR", "World.Europe.SVK", "World.Africa.MUS", "World.Europe.ROU", "World.Europe.EST", "World.Europe.LVA", "World.Europe.HUN"]}, {"name": "LUX", "imports": ["World.Asia.SGP", "World.Europe.MLT", "World.Asia.CYP"]}, {"name": "LVA", "imports": ["World.Asia.GEO", "World.Europe.BGR", "World.Europe.HRV", "World.Europe.MNE", "World.Africa.MUS", "World.Europe.LTU", "World.Europe.EST"]}, {"name": "MDA", "imports": ["World.Oceania.FJI", "World.Europe.ROU", "World.Oceania.TON"]}, {"name": "MKD", "imports": ["World.Asia.GEO", "World.Africa.TUN", "World.Asia.ARM", "World.Europe.SRB", "World.Europe.BIH", "World.Europe.ALB"]}, {"name": "MLT", "imports": ["World.Europe.LUX", "World.Asia.CYP", "World.Asia.SGP", "World.North America.PAN", "World.Asia.MDV"]}, {"name": "MNE", "imports": ["World.Asia.GEO", "World.North America.BHS", "World.Europe.HRV", "World.Asia.CYP", "World.Europe.LVA"]}, {"name": "NLD", "imports": ["World.Europe.DNK", "World.Europe.SWE", "World.Europe.BEL"]}, {"name": "NOR", "imports": ["World.Europe.FIN", "World.Europe.AUT", "World.Europe.SWE"]}, {"name": "POL", "imports": ["World.Europe.ROU", "World.Europe.CZE", "World.Europe.HUN"]}, {"name": "PRT", "imports": ["World.Europe.GRC", "World.Europe.HRV", "World.Europe.ESP", "World.North America.CRI", "World.Europe.ITA"]}, {"name": "ROU", "imports": ["World.Europe.POL", "World.Europe.BGR", "World.Europe.MDA", "World.Europe.LTU"]}, {"name": "RUS", "imports": ["World.Asia.IRN", "World.Asia.JPN", "World.Europe.BLR", "World.Africa.ZAF", "World.North America.CAN", "World.Europe.DEU"]}, {"name": "SRB", "imports": ["World.Africa.TUN", "World.Asia.ARM", "World.Europe.HRV", "World.Europe.MKD", "World.Europe.BIH"]}, {"name": "SVK", "imports": ["World.Europe.LTU", "World.Europe.IRL", "World.Europe.SVN", "World.Europe.CZE", "World.Europe.HUN"]}, {"name": "SVN", "imports": ["World.Europe.EST", "World.Europe.AUT", "World.Europe.SVK"]}, {"name": "SWE", "imports": ["World.Europe.BEL", "World.Asia.ISR", "World.Europe.NOR", "World.Europe.DNK", "World.Europe.FIN", "World.Europe.NLD"]}, {"name": "UKR", "imports": ["World.Asia.SYR", "World.Europe.BLR", "World.South America.ARG"]}]}, {"name": "Asia", "children": [{"name": "ARE", "imports": ["World.Asia.KWT", "World.Asia.MYS", "World.Asia.QAT", "World.Asia.BHR"]}, {"name": "ARM", "imports": ["World.Europe.ALB", "World.Europe.MKD", "World.Europe.SRB"]}, {"name": "AZE", "imports": ["World.South America.PRY", "World.Asia.MYS", "World.Asia.BRN"]}, {"name": "BGD", "imports": ["World.Asia.PHL", "World.Asia.IND", "World.Asia.IDN", "World.Asia.PAK", "World.Asia.LKA"]}, {"name": "BHR", "imports": ["World.Asia.QAT", "World.Asia.ARE", "World.Asia.KWT"]}, {"name": "BRN", "imports": ["World.Asia.OMN", "World.Asia.AZE", "World.Asia.KWT"]}, {"name": "BTN", "imports": ["World.Africa.TGO", "World.Asia.KHM", "World.Asia.VNM"]}, {"name": "CHN", "imports": ["World.Asia.THA", "World.Asia.TUR", "World.Asia.IDN", "World.Asia.IND"]}, {"name": "CYP", "imports": ["World.North America.BHS", "World.Europe.MNE", "World.Africa.MUS", "World.Europe.LUX", "World.Europe.MLT", "World.Asia.MDV"]}, {"name": "GEO", "imports": ["World.Europe.MKD", "World.Europe.LVA", "World.Europe.MNE"]}, {"name": "IDN", "imports": ["World.Asia.PHL", "World.Asia.IND", "World.Asia.CHN", "World.South America.PRY", "World.Asia.BGD", "World.Asia.UZB", "World.South America.PER", "World.Africa.EGY", "World.Asia.VNM", "World.Asia.LKA"]}, {"name": "IND", "imports": ["World.Asia.PHL", "World.Asia.IDN", "World.Asia.CHN", "World.Africa.MAR", "World.Asia.BGD", "World.Africa.EGY", "World.Asia.PAK"]}, {"name": "IRN", "imports": ["World.South America.COL", "World.South America.BRA", "World.Africa.DZA", "World.Europe.RUS", "World.South America.ECU"]}, {"name": "IRQ", "imports": ["World.Africa.COG", "World.Africa.GAB", "World.Africa.DZA"]}, {"name": "ISR", "imports": ["World.Asia.LBN", "World.Europe.SWE", "World.Oceania.NZL", "World.Oceania.AUS"]}, {"name": "JPN", "imports": ["World.South America.CHL", "World.Oceania.AUS", "World.Europe.DEU", "World.Europe.GBR", "World.Europe.RUS", "World.North America.USA", "World.North America.MEX", "World.Asia.KOR"]}, {"name": "KAZ", "imports": ["World.North America.CAN", "World.North America.USA", "World.Oceania.AUS"]}, {"name": "KGZ", "imports": ["World.Asia.TJK", "World.Oceania.SLB", "World.Oceania.TON"]}, {"name": "KHM", "imports": ["World.Africa.ETH", "World.Africa.UGA", "World.Asia.VNM", "World.Asia.BTN", "World.Africa.TZA"]}, {"name": "KOR", "imports": ["World.Asia.JPN", "World.South America.CHL", "World.Europe.BLR", "World.Asia.MYS", "World.Europe.DEU", "World.North America.MEX"]}, {"name": "KWT", "imports": ["World.Asia.SAU", "World.Asia.ARE", "World.Asia.BRN", "World.Asia.BHR", "World.Asia.OMN", "World.Asia.QAT"]}, {"name": "LBN", "imports": ["World.North America.BHS", "World.Asia.ISR", "World.North America.CRI"]}, {"name": "LKA", "imports": ["World.Asia.TJK", "World.Asia.BGD", "World.Asia.IDN"]}, {"name": "MDV", "imports": ["World.Europe.MLT", "World.North America.BLZ", "World.Asia.CYP"]}, {"name": "MNG", "imports": ["World.Africa.COG", "World.Africa.GAB", "World.Africa.GNQ"]}, {"name": "MYS", "imports": ["World.Asia.ARE", "World.Asia.KOR", "World.Europe.CZE", "World.Asia.THA", "World.Asia.AZE"]}, {"name": "NPL", "imports": ["World.Asia.SYR", "World.Africa.GMB", "World.Africa.MAR", "World.North America.HTI", "World.Asia.PAK"]}, {"name": "OMN", "imports": ["World.Asia.BRN", "World.Asia.SAU", "World.Asia.QAT", "World.Asia.KWT"]}, {"name": "PAK", "imports": ["World.Asia.IND", "World.Asia.NPL", "World.Africa.KEN", "World.Asia.BGD", "World.North America.GTM", "World.Africa.ETH", "World.Africa.TZA"]}, {"name": "PHL", "imports": ["World.Asia.IND", "World.Asia.BGD", "World.Asia.IDN"]}, {"name": "PSE", "imports": ["World.Africa.STP", "World.Africa.TUN", "World.Africa.CPV"]}, {"name": "QAT", "imports": ["World.Asia.BHR", "World.Asia.SAU", "World.Asia.ARE", "World.Asia.KWT", "World.Asia.OMN"]}, {"name": "SAU", "imports": ["World.Asia.OMN", "World.Asia.KWT", "World.Asia.QAT", "World.Africa.DZA"]}, {"name": "SGP", "imports": ["World.Europe.BEL", "World.Europe.LUX", "World.North America.PAN", "World.Europe.MLT", "World.Europe.CHE"]}, {"name": "SYR", "imports": ["World.Asia.NPL", "World.Europe.UKR", "World.South America.ARG"]}, {"name": "THA", "imports": ["World.Asia.CHN", "World.Asia.MYS", "World.Asia.VNM"]}, {"name": "TJK", "imports": ["World.Asia.KGZ", "World.South America.PRY", "World.Africa.UGA", "World.Asia.UZB", "World.North America.NIC", "World.Asia.LKA", "World.Africa.TZA"]}, {"name": "TLS", "imports": ["World.Africa.MWI", "World.Oceania.SLB", "World.Africa.MOZ"]}, {"name": "TUR", "imports": ["World.South America.CHL", "World.Asia.CHN", "World.South America.ARG"]}, {"name": "UZB", "imports": ["World.Asia.TJK", "World.Africa.EGY", "World.Asia.IDN"]}, {"name": "VNM", "imports": ["World.Asia.THA", "World.Asia.KHM", "World.Asia.BTN", "World.Asia.IDN"]}]}, {"name": "South America", "children": [{"name": "ARG", "imports": ["World.Asia.TUR", "World.Asia.SYR", "World.South America.URY", "World.South America.BRA", "World.Europe.UKR"]}, {"name": "BOL", "imports": ["World.Africa.TGO", "World.Africa.CMR", "World.Africa.TCD"]}, {"name": "BRA", "imports": ["World.Asia.IRN", "World.South America.COL", "World.South America.ECU", "World.South America.ARG"]}, {"name": "CHL", "imports": ["World.Asia.TUR", "World.South America.COL", "World.Asia.JPN", "World.South America.URY", "World.Oceania.AUS", "World.North America.MEX", "World.Asia.KOR"]}, {"name": "COL", "imports": ["World.North America.DOM", "World.Asia.IRN", "World.South America.CHL", "World.South America.PER", "World.South America.BRA"]}, {"name": "ECU", "imports": ["World.Asia.IRN", "World.South America.BRA", "World.South America.PER"]}, {"name": "PER", "imports": ["World.North America.MEX", "World.Asia.IDN", "World.South America.COL", "World.South America.ECU"]}, {"name": "PRY", "imports": ["World.Asia.TJK", "World.Asia.IDN", "World.Asia.AZE"]}, {"name": "URY", "imports": ["World.South America.CHL", "World.North America.CRI", "World.South America.ARG"]}]}, {"name": "Oceania", "children": [{"name": "AUS", "imports": ["World.Asia.ISR", "World.Asia.JPN", "World.Asia.KAZ", "World.South America.CHL", "World.North America.CAN", "World.Oceania.NZL", "World.North America.USA"]}, {"name": "FJI", "imports": ["World.Africa.CPV", "World.Europe.MDA", "World.North America.BLZ", "World.Oceania.TON"]}, {"name": "NZL", "imports": ["World.North America.CAN", "World.Asia.ISR", "World.Europe.ISL", "World.Oceania.AUS"]}, {"name": "SLB", "imports": ["World.Asia.KGZ", "World.Africa.MDG", "World.Asia.TLS", "World.Africa.NER", "World.Africa.GNB"]}, {"name": "TON", "imports": ["World.Oceania.FJI", "World.Europe.MDA", "World.North America.BLZ", "World.Asia.KGZ"]}]}, {"name": "North America", "children": [{"name": "BHS", "imports": ["World.Asia.LBN", "World.Asia.CYP", "World.Europe.MNE"]}, {"name": "BLZ", "imports": ["World.Oceania.TON", "World.Africa.STP", "World.Oceania.FJI", "World.Asia.MDV", "World.Africa.CPV"]}, {"name": "CAN", "imports": ["World.Asia.KAZ", "World.Oceania.AUS", "World.Oceania.NZL", "World.Europe.DEU", "World.Europe.GBR", "World.Europe.RUS"]}, {"name": "CRI", "imports": ["World.Europe.GRC", "World.South America.URY", "World.Europe.PRT", "World.Europe.ESP", "World.Asia.LBN"]}, {"name": "DOM", "imports": ["World.North America.MEX", "World.South America.COL", "World.North America.PAN"]}, {"name": "GTM", "imports": ["World.Africa.KEN", "World.North America.SLV", "World.Asia.PAK", "World.Africa.CIV"]}, {"name": "HND", "imports": ["World.North America.NIC", "World.Africa.MOZ", "World.Africa.MDG"]}, {"name": "HTI", "imports": ["World.Africa.GMB", "World.Africa.SLE", "World.Asia.NPL", "World.Africa.GHA"]}, {"name": "MEX", "imports": ["World.North America.DOM", "World.Asia.JPN", "World.South America.CHL", "World.South America.PER", "World.Asia.KOR"]}, {"name": "NIC", "imports": ["World.Africa.GNB", "World.North America.SLV", "World.Asia.TJK", "World.North America.HND"]}, {"name": "PAN", "imports": ["World.Asia.SGP", "World.Europe.MLT", "World.North America.DOM", "World.Europe.CHE"]}, {"name": "SLV", "imports": ["World.North America.NIC", "World.North America.GTM", "World.Africa.CPV"]}, {"name": "USA", "imports": ["World.Asia.JPN", "World.Asia.KAZ", "World.Europe.GBR", "World.Oceania.AUS"]}]}]};
+        const width = 1000;
+        const radius = width / 2 - 110;
+
+        const colorScale = d3.scaleOrdinal(d3.schemeCategory10);
+
+        const tree = d3.cluster().size([2 * Math.PI, radius]);
+
+        const root = tree(bilink(d3.hierarchy(data)
+            .sort((a, b) => d3.ascending(a.height, b.height) || d3.ascending(a.data.name, b.data.name))));
+
+        const svg = d3.select("#chart").append("svg")
+            .attr("width", width)
+            .attr("height", width)
+            .append("g")
+            .attr("transform", `translate(${width/2},${width/2})`);
+
+        const line = d3.lineRadial()
+            .curve(d3.curveBundle.beta(0.85))
+            .radius(d => d.y)
+            .angle(d => d.x);
+
+        // KHỬ TRÙNG LẶP DÂY VẼ (Chỉ giữ 1 đường nối duy nhất cho mỗi cặp)
+        const allOutgoing = root.leaves().flatMap(leaf => leaf.outgoing);
+        const uniqueLinksMap = new Map();
+        allOutgoing.forEach(l => {
+            const id1 = id(l[0]);
+            const id2 = id(l[1]);
+            const key = [id1, id2].sort().join("---");
+            if (!uniqueLinksMap.has(key)) {
+                uniqueLinksMap.set(key, l);
+            }
+        });
+        const uniqueLinks = Array.from(uniqueLinksMap.values());
+
+        // Vẽ dây nối SVG
+        const link = svg.append("g")
+          .selectAll("path")
+          .data(uniqueLinks)
+          .join("path")
+            .attr("class", "link")
+            .attr("d", ([i, o]) => line(i.path(o)))
+            .each(function(d) { d.path = this; });
+
+        // Tên các nước
+        const node = svg.append("g")
+          .selectAll("g")
+          .data(root.leaves())
+          .join("g")
+            .attr("transform", d => `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y},0)`);
+
+        node.append("text")
+            .attr("class", "node")
+            .attr("dy", "0.31em")
+            .attr("x", d => d.x < Math.PI ? 6 : -6)
+            .attr("text-anchor", d => d.x < Math.PI ? "start" : "end")
+            .attr("transform", d => d.x >= Math.PI ? "rotate(180)" : null)
+            .attr("fill", d => colorScale(d.parent.data.name))
+            .text(d => d.data.name)
+            .each(function(d) { d.textNode = this; })
+            .on("mouseover", overed)
+            .on("mouseout", outed);
+
+        function overed(event, d) {
+            // 1. Làm mờ toàn bộ dây nối và tên nước khác
+            link.style("stroke-opacity", 0.04).style("stroke-width", "1px");
+            d3.selectAll(".node").style("opacity", 0.15);
+
+            // 2. Highlight tên nước hiện tại
+            d3.select(d.textNode)
+                .style("opacity", 1)
+                .attr("font-weight", "bold")
+                .attr("font-size", "14px");
+
+            // 3. Lọc tất cả các dây trong uniqueLinks có dính tới node d
+            const activeLinks = uniqueLinks.filter(l => l[0] === d || l[1] === d);
+
+            // 4. Highlight chính xác các dây đó và các nước hàng xóm
+            activeLinks.forEach(l => {
+                if (l.path) {
+                    d3.select(l.path)
+                        .style("stroke-opacity", 1)
+                        .style("stroke-width", "2.8px")
+                        .style("stroke", "#e74c3c")
+                        .raise();
+                }
+                if (l[0] && l[0].textNode) {
+                    d3.select(l[0].textNode)
+                        .style("opacity", 1)
+                        .attr("font-weight", "bold")
+                        .attr("font-size", "12px");
+                }
+                if (l[1] && l[1].textNode) {
+                    d3.select(l[1].textNode)
+                        .style("opacity", 1)
+                        .attr("font-weight", "bold")
+                        .attr("font-size", "12px");
+                }
+            });
+        }
+
+        function outed(event, d) {
+            // Khôi phục lại trạng thái ban đầu
+            link.style("stroke-opacity", 0.25)
+                .style("stroke-width", "1px")
+                .style("stroke", "#7f8c8d");
+
+            d3.selectAll(".node")
+                .style("opacity", 1)
+                .attr("font-weight", "normal")
+                .attr("font-size", "10px");
+        }
+
+        function bilink(root) {
+            const map = new Map(root.leaves().map(d => [id(d), d]));
+            for (const leaf of root.leaves()) {
+                leaf.node = leaf;
+                leaf.incoming = [];
+                leaf.outgoing = leaf.data.imports.map(i => [leaf, map.get(i)]).filter(d => d[1]);
+            }
+            for (const leaf of root.leaves()) {
+                for (const o of leaf.outgoing) {
+                    o[1].incoming.push(o);
+                }
+            }
+            return root;
+        }
+
+        function id(node) {
+            return `${node.parent ? id(node.parent) + "." : ""}${node.data.name}`;
+        }
+    </script>
+</body>
+</html>

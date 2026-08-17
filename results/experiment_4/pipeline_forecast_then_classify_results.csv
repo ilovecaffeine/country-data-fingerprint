@@ -1,0 +1,2 @@
+Pipeline,Test_Accuracy,Test_Top5_Acc,Test_F1_Weighted
+LinearRegression (Exp3 Forecast) -> ExtraTrees (Exp2 Classify),0.9771241830065359,1.0,0.9763376057493706

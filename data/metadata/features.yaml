@@ -1,0 +1,114 @@
+# ==============================================================================
+# CONFIGURATION: FEATURES METADATA & PREPROCESSING RULES
+# Project: Country Data Fingerprint
+# ==============================================================================
+
+# 1. IDENTIFIER COLUMNS (METADATA / ID COLUMNS)
+id_columns:
+  - country_code_3
+  - country_name
+  - year
+
+# 2. TARGET COLUMNS (CLASSIFICATION & FORECAST TARGETS)
+targets:
+  classification: country_code_3
+
+# 3. PREPROCESSING TRANSFORMATION RULES
+transformations:
+  log:
+    - gdp_per_capita_ppp
+    - population_total
+
+  log1p:
+    - general_government_final_consumption_expenditure_pct_gdp
+    - co2_emissions_per_capita
+    - under_5_mortality_rate_per_1000
+    - trade_pct_gdp
+    - unemployment_rate_pct
+    - industry_pct_gdp
+    - agriculture_pct_gdp
+    - fertility_rate_births_per_woman
+
+  yeo_johnson:
+    - inflation_gdp_deflator_annual_pct
+
+  reflect_log:
+    - access_to_electricity_pct
+
+# 4. FEATURE DOMAIN GROUPS
+domain_groups:
+  macro_economy:
+    - gdp_per_capita_ppp
+    - gdp_growth_annual_pct
+    - inflation_gdp_deflator_annual_pct
+    - trade_pct_gdp
+    - general_government_final_consumption_expenditure_pct_gdp
+
+  economic_structure:
+    - agriculture_pct_gdp
+    - industry_pct_gdp
+    - services_pct_gdp
+
+  demographics_labor:
+    - population_total
+    - population_growth_annual_pct
+    - urban_population_pct
+    - urban_population_growth_annual_pct
+    - unemployment_rate_pct
+
+  social_human_development:
+    - mean_years_of_schooling_adults
+    - life_expectancy_years
+    - under_5_mortality_rate_per_1000
+    - fertility_rate_births_per_woman
+
+  environment_infrastructure:
+    - co2_emissions_per_capita
+    - access_to_electricity_pct
+    - internet_users_pct_population
+
+# 5. COMPLETE LIST OF ALL 20 FEATURES
+all_features:
+  - gdp_per_capita_ppp
+  - population_total
+  - urban_population_pct
+  - co2_emissions_per_capita
+  - mean_years_of_schooling_adults
+  - agriculture_pct_gdp
+  - under_5_mortality_rate_per_1000
+  - fertility_rate_births_per_woman
+  - trade_pct_gdp
+  - industry_pct_gdp
+  - unemployment_rate_pct
+  - life_expectancy_years
+  - general_government_final_consumption_expenditure_pct_gdp
+  - services_pct_gdp
+  - population_growth_annual_pct
+  - access_to_electricity_pct
+  - urban_population_growth_annual_pct
+  - internet_users_pct_population
+  - inflation_gdp_deflator_annual_pct
+  - gdp_growth_annual_pct
+
+# 6. DISPLAY NAMES AND UNITS DICTIONARY
+feature_labels:
+  gdp_per_capita_ppp: "GDP per Capita (PPP, Current Int. $)"
+  population_total: "Total Population (People)"
+  urban_population_pct: "Urban Population (% of Total)"
+  co2_emissions_per_capita: "CO2 Emissions per Capita (Metric Tons)"
+  mean_years_of_schooling_adults: "Mean Years of Schooling (Years)"
+  agriculture_pct_gdp: "Agriculture Value Added (% of GDP)"
+  under_5_mortality_rate_per_1000: "Under-5 Mortality Rate (per 1,000 Live Births)"
+  fertility_rate_births_per_woman: "Fertility Rate (Births per Woman)"
+  trade_pct_gdp: "Trade (% of GDP)"
+  industry_pct_gdp: "Industry Value Added (% of GDP)"
+  unemployment_rate_pct: "Unemployment Rate (% of Total Labor Force)"
+  life_expectancy_years: "Life Expectancy at Birth (Years)"
+  general_government_final_consumption_expenditure_pct_gdp: "General Government Consumption Expenditure (% of GDP)"
+  services_pct_gdp: "Services Value Added (% of GDP)"
+  population_growth_annual_pct: "Annual Population Growth (%)"
+  access_to_electricity_pct: "Access to Electricity (% of Population)"
+  urban_population_growth_annual_pct: "Annual Urban Population Growth (%)"
+  internet_users_pct_population: "Individuals Using the Internet (% of Population)"
+  inflation_gdp_deflator_annual_pct: "Inflation, GDP Deflator (Annual %)"
+  gdp_growth_annual_pct: "Annual GDP Growth (%)"
