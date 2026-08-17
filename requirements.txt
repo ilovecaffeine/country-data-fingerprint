@@ -1,7 +1,24 @@
-﻿pandas
-numpy
-scikit-learn
-scipy
-matplotlib
-pycountry
-pyyaml
+﻿# ==============================================================================
+# REQUIREMENTS FOR PROJECT: COUNTRY DATA FINGERPRINT
+# ==============================================================================
+
+# 1. CORE DATA PROCESSING & NUMERICAL COMPUTING
+pandas>=2.0.0
+numpy>=1.24.0
+scipy>=1.10.0
+
+# 2. MACHINE LEARNING & STATISTICAL MODELING
+scikit-learn>=1.3.0
+xgboost>=2.0.0
+lightgbm>=4.0.0
+catboost>=1.2.0
+
+# 3. DATA VISUALIZATION & INTERACTIVE CHARTS
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.15.0
+d3blocks>=1.3.0
+networkx>=3.1
+
+# 4. CONFIGURATION & FILE PARSING
+PyYAML>=6.0
