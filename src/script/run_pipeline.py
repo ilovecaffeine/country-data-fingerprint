@@ -1,49 +1,48 @@
 # src/script/run_pipeline.py
-# cd "C:\Users\admin\Documents\Code_for_fun\country-data-fingerprint"
+# cd country-data-fingerprint
 # python -m src.script.run_pipeline
 
 import argparse
-import sys
 from pathlib import Path
+import sys
+from config import paths
 import pandas as pd
 
-from config import paths
 from src.data.load import build_and_populate_all_draft_data
 from src.data.transform import (
-	impute_all_worldbank_raw_files,
-	impute_all_ourworldindata_raw_files,
-	combine_all_drafts_to_panel_data,
-	preprocess_and_export_all_experiment_1_years,
-	preprocess_and_split_experiment_2,
-	preprocess_and_split_experiment_3
+    combine_all_drafts_to_panel_data,
+    impute_all_ourworldindata_raw_files,
+    impute_all_worldbank_raw_files,
+    preprocess_and_export_all_experiment_1_years,
+    preprocess_and_split_experiment_2,
+    preprocess_and_split_experiment_3,
 )
 from src.distance_matrices.distance_matrices import (
-    export_experiment_1_distance_matrices,
     export_experiment_1_cosine_matrices,
+    export_experiment_1_distance_matrices,
+    generate_cosine_neighbors_summary,
     generate_euclidean_neighbors_summary,
-    generate_cosine_neighbors_summary
 )
 from src.hierarchical_edge_bundling.export_heb import (
-    export_all_years_distance_heb_plots,
+    continent_map,
     export_all_years_cosine_heb_plots,
-    continent_map
+    export_all_years_distance_heb_plots,
 )
 from src.models.classifier import (
+    evaluate_extra_trees_on_test,
     load_experiment_2_country_classification,
     run_auto_benchmark_experiment_2,
-    evaluate_extra_trees_on_test
 )
-
 from src.models.forecast import (
-    load_experiment_3,
-    run_auto_benchmark_experiment_3,
     evaluate_linear_regression_on_test,
+    load_experiment_3,
+    plot_country_stability_scatter_chart,
     plot_global_yearly_boxplot,
-    plot_country_stability_scatter_chart
+    run_auto_benchmark_experiment_3,
 )
-
 from src.models.forecast_then_classify import (
-	run_forecast_then_classify_pipeline, plot_misclassification_comparison
+    plot_misclassification_comparison,
+    run_forecast_then_classify_pipeline,
 )
 
 PIPELINE_HELPER_TEXT = """
@@ -64,32 +63,36 @@ PIPELINE_HELPER_TEXT = """
 ================================================================================
 """
 
+
 def validate_panel_data_integrity(panel_file_path: Path) -> bool:
-    """Kiểm tra độ toàn vẹn của bảng draft_panel_2010_2024.csv:
-    1. File không được rỗng.
-    2. Không chứa bất kỳ giá trị NaN / missing nào.
-    3. Tất cả các quốc gia đều phải đủ các năm (2010-2024).
+    """Validates the integrity of the draft_panel_2010_2024.csv table:
+    1. File must not be empty.
+    2. Must not contain any NaN / missing values.
+    3. All countries must have data for all years (2010-2024).
     """
     if not panel_file_path.exists():
-        print(f"❌ [ERROR] Không tìm thấy file Panel Data: {panel_file_path}")
+        print(f"❌ [ERROR] Panel Data file not found: {panel_file_path}")
         return False
 
     df_panel = pd.read_csv(panel_file_path)
 
-    # 1. Kiểm tra bảng rỗng
+    # 1. Check for empty dataframe
     if df_panel.empty:
-        print(f"❌ [ERROR] Bảng Panel Data bị rỗng (0 quốc gia, 0 dòng)!")
+        print("❌ [ERROR] Panel Data table is empty (0 countries, 0 rows)!")
         return False
 
-    # 2. Kiểm tra ô Missing Values (NaN)
+    # 2. Check for Missing Values (NaNs)
     total_nans = df_panel.isna().sum().sum()
     if total_nans > 0:
-        print(f"❌ [ERROR] Phát hiện {total_nans} ô bị missing (NaN) trong Panel Data!")
+        print(
+            f"❌ [ERROR] Detected {total_nans} missing cells (NaN) in Panel"
+            " Data!"
+        )
         nan_cols = df_panel.isna().sum()
-        print("Chi tiết các cột bị missing:\n", nan_cols[nan_cols > 0])
+        print("Missing column details:\n", nan_cols[nan_cols > 0])
         return False
 
-    # 3. Kiểm tra Đủ Năm cho từng Quốc gia
+    # 3. Check full year coverage for each country
     expected_years = set(paths.YEARS)
     expected_year_count = len(expected_years)
 
@@ -101,164 +104,192 @@ def validate_panel_data_integrity(panel_file_path: Path) -> bool:
     }
 
     if incomplete_countries:
-        print(f"❌ [ERROR] Phát hiện {len(incomplete_countries)} quốc gia bị thiếu năm!")
+        print(
+            "❌ [ERROR] Detected"
+            f" {len(incomplete_countries)} countries with missing years!"
+        )
         for code, missing_yrs in list(incomplete_countries.items())[:5]:
-            print(f"   - Nước {code}: Thiếu các năm {sorted(list(missing_yrs))}")
+            print(
+                f"   - Country {code}: Missing years"
+                f" {sorted(list(missing_yrs))}"
+            )
         return False
 
     num_countries = df_panel["country_code_3"].nunique()
-    print(f"✅ KIỂM TRA DỮ LIỆU THÀNH CÔNG: {num_countries} quốc gia sạch 100% dữ liệu, đủ {expected_year_count} năm (2010-2024), 0 ô NaN.")
+    print(
+        f"✅ DATA INTEGRITY CHECK PASSED: {num_countries} countries with 100%"
+        f" clean data across all {expected_year_count} years (2010-2024), 0 NaN"
+        " cells."
+    )
     return True
 
+
 def step_1_data_processing(
-        use_imputed: bool = True,
-        drop_countries_with_missing: bool = True
+    use_imputed: bool = True, drop_countries_with_missing: bool = True
 ):
     print("\n=======================================================")
-    print("📍 GIAI ĐOẠN 1: NẠP VÀ LÀM SẠCH DỮ LIỆU PANEL DATA")
+    print("📍 STAGE 1: LOADING AND CLEANING PANEL DATA")
     print("=======================================================")
 
-    # 1. Tiến hành Impute dữ liệu thô nếu cờ use_imputed = True
+    # 1. Impute raw data if use_imputed flag is True
     if use_imputed:
-        print("🔄 Đang thực hiện nội suy (Impute) cho các file dữ liệu thô (World Bank & OWID)...")
+        print(
+            "🔄 Performing imputation on raw data files (World Bank & OWID)..."
+        )
         impute_all_worldbank_raw_files()
         impute_all_ourworldindata_raw_files()
 
-    # 2. Nạp và ghép 20 chỉ số vào draft
-    build_and_populate_all_draft_data(use_imputed=use_imputed, clear_existing=True)
-
-    # 3. Gom thành bảng Panel Data (drop_countries=False, drop_countries_with_missing=True)
-    combine_all_drafts_to_panel_data(
-        drop_countries=False,
-        drop_countries_with_missing=drop_countries_with_missing
+    # 2. Load and populate 20 indicators into draft tables
+    build_and_populate_all_draft_data(
+        use_imputed=use_imputed, clear_existing=True
     )
 
-    # 🌟 BƯỚC KIỂM TRA ĐỘ TOÀN VẸN (VALIDATION CHECK)
-    panel_csv_path = paths.RAW_DATA_DIR / "draft_panel_2010_2024.csv"
-    print("\n🔍 Đang kiểm tra độ toàn vẹn của draft_panel_2010_2024.csv...")
-    
-    if not validate_panel_data_integrity(panel_csv_path):
-        print("\n⛔ [STOP PIPELINE] Dữ liệu Panel Data không đạt yêu cầu!")
-        print(f"👉 Đã lưu Panel Data tại: {panel_csv_path}")
-        sys.exit(1)  # Dừng chương trình ngay lập tức
+    # 3. Combine into Panel Data dataframe
+    combine_all_drafts_to_panel_data(
+        drop_countries=False,
+        drop_countries_with_missing=drop_countries_with_missing,
+    )
 
-    # 4. Tiền xử lý dữ liệu xuất ra cho 3 Experiments (Chỉ chạy khi dữ liệu đã đạt chuẩn 100%)
-    print("\n🔄 Tiến hành tiền xử lý và tách dữ liệu cho 3 Experiments...")
+    # 🌟 DATA INTEGRITY VALIDATION CHECK
+    panel_csv_path = paths.RAW_DATA_DIR / "draft_panel_2010_2024.csv"
+    print("\n🔍 Validating integrity of draft_panel_2010_2024.csv...")
+
+    if not validate_panel_data_integrity(panel_csv_path):
+        print("\n⛔ [STOP PIPELINE] Panel Data did not pass validation!")
+        print(f"👉 Saved Panel Data at: {panel_csv_path}")
+        sys.exit(1)  # Terminate execution immediately
+
+    # 4. Preprocess and export data for 3 Experiments (Runs only when data is 100% clean)
+    print("\n🔄 Preprocessing and splitting data for 3 Experiments...")
     preprocess_and_export_all_experiment_1_years()
     preprocess_and_split_experiment_2()
     preprocess_and_split_experiment_3()
 
+
 def step_2_experiment_1():
     print("\n=======================================================")
-    print("📍 GIAI ĐOẠN 2: EXPERIMENT 1 - DISTANCE MATRICES & HEB PLOTS")
+    print("📍 STAGE 2: EXPERIMENT 1 - DISTANCE MATRICES & HEB PLOTS")
     print("=======================================================")
 
-    # 1. Tính và xuất các Ma trận Khoảng cách
+    # 1. Calculate and export Distance Matrices
     export_experiment_1_distance_matrices()
     export_experiment_1_cosine_matrices()
 
-    # 2. Xuất file tổng hợp Hàng xóm (Wide format)
+    # 2. Export Neighbor Summary files (Wide format)
     generate_euclidean_neighbors_summary()
     generate_cosine_neighbors_summary()
 
-    # 3. Xuất tất cả biểu đồ HEB HTML (Euclidean & Cosine)
+    # 3. Export all HEB HTML plots (Euclidean & Cosine)
     export_all_years_distance_heb_plots(continent_map=continent_map)
     export_all_years_cosine_heb_plots(continent_map=continent_map)
 
+
 def step_3_experiment_2():
     print("\n=======================================================")
-    print("📍 GIAI ĐOẠN 3: EXPERIMENT 2 - COUNTRY CLASSIFICATION")
+    print("📍 STAGE 3: EXPERIMENT 2 - COUNTRY CLASSIFICATION")
     print("=======================================================")
 
-    # 1. Load dữ liệu Exp 2
+    # 1. Load Experiment 2 data
     (
-        X_train_exp2, y_train_exp2,
-        X_val_exp2, y_val_exp2,
-        X_test_exp2, y_test_exp2,
-        le
+        X_train_exp2,
+        y_train_exp2,
+        X_val_exp2,
+        y_val_exp2,
+        X_test_exp2,
+        y_test_exp2,
+        le,
     ) = load_experiment_2_country_classification()
 
-    # 2. Auto-Benchmark so sánh các mô hình trên tập Validation
+    # 2. Auto-Benchmark model comparison on Validation set
     run_auto_benchmark_experiment_2(
         X_train=X_train_exp2,
         y_train=y_train_exp2,
         X_val=X_val_exp2,
         y_val=y_val_exp2,
-        plot_results=True
+        plot_results=True,
     )
 
-    # 3. Đánh giá mô hình Quán quân Extra Trees trên tập TEST
+    # 3. Evaluate winning Extra Trees model on TEST set
     evaluate_extra_trees_on_test(
         X_train=X_train_exp2,
         y_train=y_train_exp2,
         X_test=X_test_exp2,
         y_test=y_test_exp2,
-        label_encoder=le
+        label_encoder=le,
     )
 
 
 def step_4_experiment_3():
     print("\n=======================================================")
-    print("📍 GIAI ĐOẠN 4: EXPERIMENT 3 - MULTI-OUTPUT FORECASTING")
+    print("📍 STAGE 4: EXPERIMENT 3 - MULTI-OUTPUT FORECASTING")
     print("=======================================================")
 
-    # 1. Load dữ liệu Exp 3
+    # 1. Load Experiment 3 data
     (
-        X_train_exp3, y_train_exp3,
-        X_val_exp3, y_val_exp3,
-        X_test_exp3, y_test_exp3
+        X_train_exp3,
+        y_train_exp3,
+        X_val_exp3,
+        y_val_exp3,
+        X_test_exp3,
+        y_test_exp3,
     ) = load_experiment_3()
 
-    # 2. Auto-Benchmark so sánh các mô hình Hồi quy trên tập Validation
+    # 2. Auto-Benchmark regression model comparison on Validation set
     run_auto_benchmark_experiment_3(
         X_train=X_train_exp3,
         Y_train=y_train_exp3,
         X_val=X_val_exp3,
         Y_val=y_val_exp3,
-        plot_results=True
+        plot_results=True,
     )
 
-    # 3. Đánh giá mô hình Quán quân Linear Regression trên tập TEST
-    (
-        test_results_df, 
-        test_feature_details_df, 
-        country_year_df
-    ) = evaluate_linear_regression_on_test(
-        X_train=X_train_exp3,
-        Y_train=y_train_exp3,
-        X_test=X_test_exp3,
-        Y_test=y_test_exp3,
-        plot_results=True
+    # 3. Evaluate winning Linear Regression model on TEST set
+    test_results_df, test_feature_details_df, country_year_df = (
+        evaluate_linear_regression_on_test(
+            X_train=X_train_exp3,
+            Y_train=y_train_exp3,
+            X_test=X_test_exp3,
+            Y_test=y_test_exp3,
+            plot_results=True,
+        )
     )
 
-    # 4. Vẽ biểu đồ phân tích độ ổn định dự báo toàn cầu theo năm
+    # 4. Plot global forecast stability drift analysis boxplots by year
     plot_global_yearly_boxplot(country_year_df, metric="Cosine_similarity")
     plot_global_yearly_boxplot(country_year_df, metric="RMSE")
 
-    # 5. Vẽ biểu đồ Scatter Plot 4 góc phần tư về độ ổn định các quốc gia
+    # 5. Plot 4-quadrant country stability scatter chart
     plot_country_stability_scatter_chart(country_year_df)
 
 
 def step_5_closed_loop():
     print("\n=======================================================")
-    print("📍 GIAI ĐOẠN 5: CLOSED-LOOP PIPELINE (EXP 3 FORECAST -> EXP 2 CLASSIFY)")
+    print(
+        "📍 STAGE 5: CLOSED-LOOP PIPELINE (EXP 3 FORECAST -> EXP 2 CLASSIFY)"
+    )
     print("=======================================================")
 
-    # 1. Nạp dữ liệu của cả Exp 2 và Exp 3
+    # 1. Load data for both Exp 2 and Exp 3
     (
-        X_train_exp2, y_train_exp2,
-        X_val_exp2, y_val_exp2,
-        X_test_exp2, y_test_exp2,
-        le
+        X_train_exp2,
+        y_train_exp2,
+        X_val_exp2,
+        y_val_exp2,
+        X_test_exp2,
+        y_test_exp2,
+        le,
     ) = load_experiment_2_country_classification()
 
     (
-        X_train_exp3, y_train_exp3,
-        X_val_exp3, y_val_exp3,
-        X_test_exp3, y_test_exp3
+        X_train_exp3,
+        y_train_exp3,
+        X_val_exp3,
+        y_val_exp3,
+        X_test_exp3,
+        y_test_exp3,
     ) = load_experiment_3()
 
-    # 2. Chạy Pipeline ghép nối đóng vòng
+    # 2. Execute closed-loop chained pipeline
     run_forecast_then_classify_pipeline(
         X_train_exp3=X_train_exp3,
         Y_train_exp3=y_train_exp3,
@@ -266,26 +297,32 @@ def step_5_closed_loop():
         X_train_exp2=X_train_exp2,
         y_train_exp2=y_train_exp2,
         y_test_exp2=y_test_exp2,
-        label_encoder=le
+        label_encoder=le,
     )
 
     plot_misclassification_comparison(show_fig=True)
 
+
 def str2bool(v):
     if isinstance(v, bool):
         return v
-    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+    if v.lower() in ("yes", "true", "t", "y", "1"):
         return True
-    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+    elif v.lower() in ("no", "false", "f", "n", "0"):
         return False
     else:
-        raise argparse.ArgumentTypeError('Kỳ vọng giá trị Boolean (True/False hoặc 1/0).')
+        raise argparse.ArgumentTypeError(
+            "Boolean value expected (True/False or 1/0)."
+        )
+
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Master Execution Pipeline cho Dự án Country Data Fingerprint",
-        epilog=PIPELINE_HELPER_TEXT, # 👈 Hiển thị hướng dẫn khi gõ --help
-        formatter_class=argparse.RawDescriptionHelpFormatter
+        description=(
+            "Master Execution Pipeline for the Country Data Fingerprint Project"
+        ),
+        epilog=PIPELINE_HELPER_TEXT,  # Display helper instructions on --help
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
 
     parser.add_argument(
@@ -293,21 +330,27 @@ def main():
         type=str,
         default="all",
         choices=["all", "data", "exp1", "exp2", "exp3", "closed_loop"],
-        help="Chọn giai đoạn cần chạy: 'all', 'data', 'exp1', 'exp2', 'exp3', 'closed_loop' (Mặc định: 'all')"
+        help=(
+            "Select stage to run: 'all', 'data', 'exp1', 'exp2', 'exp3',"
+            " 'closed_loop' (Default: 'all')"
+        ),
     )
-    
+
     parser.add_argument(
         "--use_imputed",
         type=str2bool,
         default=True,
-        help="Sử dụng dữ liệu đã Impute (True) hay chưa Impute (False). Mặc định: True"
+        help="Use imputed data (True) or unimputed data (False). Default: True",
     )
 
     parser.add_argument(
         "--drop_missing",
         type=str2bool,
         default=True,
-        help="Lọc bỏ hoàn toàn các quốc gia có chứa dữ liệu missing (True/False. Mặc định: True)"
+        help=(
+            "Filter out countries containing missing values (True/False."
+            " Default: True)"
+        ),
     )
 
     args = parser.parse_args()
@@ -319,7 +362,7 @@ def main():
     if args.step in ["all", "data"]:
         step_1_data_processing(
             use_imputed=args.use_imputed,
-            drop_countries_with_missing=args.drop_missing
+            drop_countries_with_missing=args.drop_missing,
         )
 
     if args.step in ["all", "exp1"]:
@@ -335,21 +378,21 @@ def main():
         step_5_closed_loop()
 
     print("\n=======================================================")
-    print("🎉 TOÀN BỘ PIPELINE ĐÃ HOÀN THÀNH THÀNH CÔNG RỰC RỠ!")
+    print("🎉 FULL PIPELINE COMPLETED SUCCESSFULLY!")
     print("=======================================================")
 
 
 if __name__ == "__main__":
     main()
-    '''
-# 1. Chạy toàn bộ Pipeline từ A đến Z
+    """
+# 1. Run full Pipeline end-to-end
 python -m src.script.run_pipeline --step all --use_imputed True
 python -m src.script.run_pipeline --step all --use_imputed False
 
-# 2. Chạy riêng từng giai đoạn:
-python -m src.script.run_pipeline --step data         # Chỉ xử lý dữ liệu
-python -m src.script.run_pipeline --step exp1         # Chỉ chạy Exp 1 (Distance & HEB)
-python -m src.script.run_pipeline --step exp2         # Chỉ chạy Exp 2 (Classification)
-python -m src.script.run_pipeline --step exp3         # Chỉ chạy Exp 3 (Forecasting)
-python -m src.script.run_pipeline --step closed_loop  # Chỉ chạy Closed-Loop (Forecast -> Classify)
-    '''
+# 2. Run individual pipeline stages:
+python -m src.script.run_pipeline --step data         # Data processing only
+python -m src.script.run_pipeline --step exp1         # Run Exp 1 only (Distance & HEB)
+python -m src.script.run_pipeline --step exp2         # Run Exp 2 only (Classification)
+python -m src.script.run_pipeline --step exp3         # Run Exp 3 only (Forecasting)
+python -m src.script.run_pipeline --step closed_loop  # Run Closed-Loop only (Forecast -> Classify)
+    """

@@ -1,32 +1,37 @@
 # src/models/forecast.py
-# cd "C:\Users\admin\Documents\Code_for_fun\country-data-fingerprint"
+# cd country-data-fingerprint
 # python -m src.models.forecast
 
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-import plotly.express as px
 from pathlib import Path
+from catboost import CatBoostRegressor
 from config import paths
-
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+from lightgbm import LGBMRegressor
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import seaborn as sns
+from sklearn.ensemble import ExtraTreesRegressor, RandomForestRegressor
 from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor, ExtraTreesRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.multioutput import MultiOutputRegressor
 from sklearn.neural_network import MLPRegressor
-
 from xgboost import XGBRegressor
-from lightgbm import LGBMRegressor
-from catboost import CatBoostRegressor
 
 
 def load_experiment_3(
-    data_dir: Path | None = None
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """
-    Đọc 3 file CSV (train.csv, validation.csv, test.csv) từ PROCESSED_DATA_EXPERIMENT3_DIR
-    và tách ra các bộ Feature (X) và Target (Y) cho bài toán Forecast 20 chỉ số.
+    data_dir: Path | None = None,
+) -> tuple[
+    pd.DataFrame,
+    pd.DataFrame,
+    pd.DataFrame,
+    pd.DataFrame,
+    pd.DataFrame,
+    pd.DataFrame,
+]:
+    """Reads 3 CSV files (train.csv, validation.csv, test.csv) from
+    PROCESSED_DATA_EXPERIMENT3_DIR and separates the Feature (X) and Target (Y)
+    sets for the 20-indicator forecasting task.
 
     Returns:
         X_train_exp3, y_train_exp3,
@@ -36,29 +41,37 @@ def load_experiment_3(
     if data_dir is None:
         data_dir = paths.PROCESSED_DATA_EXPERIMENT3_DIR
 
-    # 1. ĐỌC 3 FILE CSV
+    # 1. READ 3 CSV FILES
     train_path = data_dir / "train.csv"
     val_path = data_dir / "validation.csv"
     test_path = data_dir / "test.csv"
 
     for p in [train_path, val_path, test_path]:
         if not p.exists():
-            raise FileNotFoundError(f"[ERROR] Không tìm thấy file dữ liệu Exp 3: {p}")
+            raise FileNotFoundError(
+                f"[ERROR] Exp 3 data file not found: {p}"
+            )
 
     train_df = pd.read_csv(train_path)
     val_df = pd.read_csv(val_path)
     test_df = pd.read_csv(test_path)
 
-    # 2. TỰ ĐỘNG LỌC CỘT ID, FEATURES (X) VÀ TARGETS (Y)
+    # 2. AUTOMATICALLY FILTER ID COLUMNS, FEATURES (X), AND TARGETS (Y)
     id_cols = ["country_code_3", "country_name", "year"]
-    
-    # Cột Target (Y) là những cột có đuôi '_target_next_year'
-    target_cols = [col for col in train_df.columns if col.endswith("_target_next_year")]
-    
-    # Cột Features (X) là những cột chỉ số năm t (loại trừ các cột ID và cột Target)
-    feature_cols = [col for col in train_df.columns if col not in id_cols and col not in target_cols]
 
-    # 3. TÁCH X VÀ Y CHO TỪNG TẬP
+    # Target columns (Y) are those ending with '_target_next_year'
+    target_cols = [
+        col for col in train_df.columns if col.endswith("_target_next_year")
+    ]
+
+    # Feature columns (X) are indicator columns for year t (excluding ID and Target columns)
+    feature_cols = [
+        col
+        for col in train_df.columns
+        if col not in id_cols and col not in target_cols
+    ]
+
+    # 3. SEPARATE X AND Y FOR EACH SPLIT
     X_train_exp3 = train_df[feature_cols]
     y_train_exp3 = train_df[target_cols]
 
@@ -68,22 +81,33 @@ def load_experiment_3(
     X_test_exp3 = test_df[feature_cols]
     y_test_exp3 = test_df[target_cols]
 
-    # 4. IN THÔNG TIN KIỂM TRA
+    # 4. PRINT VERIFICATION INFORMATION
     print("=======================================================")
-    print("KẾT QUẢ TẢI VÀ TÁCH DỮ LIỆU EXPERIMENT 3 (FORECASTING)")
+    print("EXPERIMENT 3 DATA LOAD AND SPLIT RESULTS (FORECASTING)")
     print("=======================================================")
-    print(f"X_train_exp3 : {X_train_exp3.shape}  |  y_train_exp3 : {y_train_exp3.shape}")
-    print(f"X_val_exp3   : {X_val_exp3.shape}  |  y_val_exp3   : {y_val_exp3.shape}")
-    print(f"X_test_exp3  : {X_test_exp3.shape}  |  y_test_exp3  : {y_test_exp3.shape}")
-    print(f"Số lượng Cột Đầu vào (Features X): {len(feature_cols)}")
-    print(f"Số lượng Cột Đầu ra (Targets Y)  : {len(target_cols)}")
+    print(
+        f"X_train_exp3 : {X_train_exp3.shape}  |  y_train_exp3 :"
+        f" {y_train_exp3.shape}"
+    )
+    print(
+        f"X_val_exp3   : {X_val_exp3.shape}  |  y_val_exp3   :"
+        f" {y_val_exp3.shape}"
+    )
+    print(
+        f"X_test_exp3  : {X_test_exp3.shape}  |  y_test_exp3  :"
+        f" {y_test_exp3.shape}"
+    )
+    print(f"Number of Input Columns (Features X): {len(feature_cols)}")
+    print(f"Number of Output Columns (Targets Y) : {len(target_cols)}")
 
     return (
-        X_train_exp3, y_train_exp3,
-        X_val_exp3, y_val_exp3,
-        X_test_exp3, y_test_exp3
+        X_train_exp3,
+        y_train_exp3,
+        X_val_exp3,
+        y_val_exp3,
+        X_test_exp3,
+        y_test_exp3,
     )
-
 
 
 def run_auto_benchmark_experiment_3(
@@ -93,16 +117,18 @@ def run_auto_benchmark_experiment_3(
     Y_val: pd.DataFrame,
     plot_results: bool = True,
     output_dir: Path | None = None,
-    ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Tự động huấn luyện và so sánh 9 phương pháp Hồi quy Đa đầu ra (Multi-Output Forecast 20 chỉ số)
-    trên tập Validation. Xuất file CSV xếp hạng chung, file chi tiết từng Feature và lưu 2 ảnh biểu đồ (Comparison + Heatmap R2).
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Automatically trains and benchmarks 9 Multi-Output Regression methods
+    (Multi-Output Forecast for 20 indicators) on the Validation set. Exports an
+    overall ranking CSV, per-feature detailed metric CSV, and saves 2 chart
+    images (Comparison + R2 Heatmap).
     """
     if output_dir is None:
         output_dir = paths.RESULTS_EXPERIMENT3_DIR
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. KHỞI TẠO TẤT CẢ 9 MÔ HÌNH
+    # 1. INITIALIZE ALL 9 MODELS
     models = {
         "Linear Regression": LinearRegression(),
         "Random Forest (Native)": RandomForestRegressor(
@@ -154,21 +180,25 @@ def run_auto_benchmark_experiment_3(
     feature_details = []
 
     print("=======================================================")
-    print(f"🚀 BẮT ĐẦU AUTO-BENCHMARK EXP 3 ({len(models)} PHƯƠNG PHÁP HỒI QUY 20 CHỈ SỐ)")
     print(
-        f"   Train: {X_train.shape[0]} mẫu | Val: {X_val.shape[0]} mẫu | Số Output Target: {Y_train.shape[1]}"
+        "🚀 STARTING EXP 3 AUTO-BENCHMARK ("
+        f"{len(models)} REGRESSION METHODS FOR 20 INDICATORS)"
+    )
+    print(
+        f"   Train: {X_train.shape[0]} samples | Val: {X_val.shape[0]} samples |"
+        f" Target Outputs: {Y_train.shape[1]}"
     )
     print("=======================================================\n")
 
-    # 2. VÒNG LẶP HUẤN LUYỆN VÀ ĐÁNH GIÁ TRÊN TẬP VALIDATION
+    # 2. TRAINING AND EVALUATION LOOP ON VALIDATION SET
     for name, model in models.items():
-        # Fit mô hình
+        # Fit model
         model.fit(X_train, Y_train)
 
-        # Predict Y trên tập Validation
+        # Predict Y on Validation set
         Y_val_pred = model.predict(X_val)
 
-        # A. TÍNH CHỈ SỐ TRUNG BÌNH TỔNG THỂ (Overall Means)
+        # A. CALCULATE OVERALL MEAN METRICS
         mean_r2 = r2_score(Y_val, Y_val_pred, multioutput="uniform_average")
         mean_mae = mean_absolute_error(Y_val, Y_val_pred)
         mean_rmse = np.sqrt(mean_squared_error(Y_val, Y_val_pred))
@@ -182,13 +212,19 @@ def run_auto_benchmark_experiment_3(
             }
         )
 
-        # B. TÍNH R2, MAE, RMSE CHI TIẾT CHO TỪNG FEATURE (Per-feature Metrics)
+        # B. CALCULATE DETAILED R2, MAE, RMSE FOR EACH FEATURE
         r2_raw = r2_score(Y_val, Y_val_pred, multioutput="raw_values")
-        mae_raw = mean_absolute_error(Y_val, Y_val_pred, multioutput="raw_values")
-        rmse_raw = np.sqrt(mean_squared_error(Y_val, Y_val_pred, multioutput="raw_values"))
+        mae_raw = mean_absolute_error(
+            Y_val, Y_val_pred, multioutput="raw_values"
+        )
+        rmse_raw = np.sqrt(
+            mean_squared_error(Y_val, Y_val_pred, multioutput="raw_values")
+        )
 
-        for col_name, r2_v, mae_v, rmse_v in zip(Y_val.columns, r2_raw, mae_raw, rmse_raw):
-            # Làm sạch tên feature (bỏ đuôi _target_next_year)
+        for col_name, r2_v, mae_v, rmse_v in zip(
+            Y_val.columns, r2_raw, mae_raw, rmse_raw
+        ):
+            # Clean feature name (strip _target_next_year suffix)
             clean_feature_name = col_name.replace("_target_next_year", "")
             feature_details.append(
                 {
@@ -201,34 +237,39 @@ def run_auto_benchmark_experiment_3(
             )
 
         print(
-            f"✔️ {name:30s} | R2: {mean_r2:.4f} | MAE: {mean_mae:.4f} | RMSE: {mean_rmse:.4f}"
+            f"✔️ {name:30s} | R2: {mean_r2:.4f} | MAE: {mean_mae:.4f} | RMSE:"
+            f" {mean_rmse:.4f}"
         )
 
-    # 3. DATAFRAME TỔNG HỢP & CHI TIẾT
-    results_df = pd.DataFrame(results).sort_values(
-        "Val_Mean_R2", ascending=False
-    ).reset_index(drop=True)
+    # 3. OVERALL & DETAILED DATAFRAMES
+    results_df = (
+        pd.DataFrame(results)
+        .sort_values("Val_Mean_R2", ascending=False)
+        .reset_index(drop=True)
+    )
 
     feature_details_df = pd.DataFrame(feature_details)
 
     print(
-        f"\n{'='*25} 🏆 BẢNG XẾP HẠNG MÔ HÌNH EXP 3 (VALIDATION) {'='*25}\n",
+        f"\n{'='*25} 🏆 EXP 3 MODEL RANKING (VALIDATION) {'='*25}\n",
         results_df.to_string(index=False),
     )
 
-    # 💾 1. LƯU FILE CSV KẾT QUẢ BENCHMARK TỔNG HỢP
+    # 💾 1. SAVE OVERALL BENCHMARK RESULTS CSV FILE
     csv_path = output_dir / "forecast_auto_benchmark_val_results.csv"
     results_df.to_csv(csv_path, index=False, encoding="utf-8")
-    print(f"\n📁 Đã lưu file kết quả tổng hợp: {csv_path.name}")
+    print(f"\n📁 Saved overall summary file: {csv_path.name}")
 
-    # 💾 2. LƯU FILE CSV CHI TIẾT ĐIỂM SỐ TỪNG FEATURE
-    feature_csv_path = output_dir / "forecast_auto_benchmark_val_feature_details.csv"
+    # 💾 2. SAVE PER-FEATURE METRIC DETAILS CSV FILE
+    feature_csv_path = (
+        output_dir / "forecast_auto_benchmark_val_feature_details.csv"
+    )
     feature_details_df.to_csv(feature_csv_path, index=False, encoding="utf-8")
-    print(f"📁 Đã lưu file chi tiết từng Feature: {feature_csv_path.name}")
+    print(f"📁 Saved per-feature details file: {feature_csv_path.name}")
 
     # 4. PLOT & SAVE CHARTS
     if plot_results:
-        # --- BIỂU ĐỒ 1: CỘT NGANG SO SÁNH R2 TỔNG THỂ ---
+        # --- CHART 1: HORIZONTAL BAR COMPARISON OF OVERALL R2 ---
         fig, ax = plt.subplots(figsize=(10, 6))
         results_df.plot(
             x="Model",
@@ -253,17 +294,17 @@ def run_auto_benchmark_experiment_3(
 
         plt.tight_layout()
 
-        # 🖼️ LƯU ẢNH BIỂU ĐỒ CỘT NGANG
+        # 🖼️ SAVE HORIZONTAL BAR CHART IMAGE
         img_path = output_dir / "forecast_auto_benchmark_val_comparison.png"
         plt.savefig(img_path, dpi=300, bbox_inches="tight")
-        print(f"🖼️ Đã lưu ảnh biểu đồ so sánh: {img_path.name}")
+        print(f"🖼️ Saved comparison plot image: {img_path.name}")
         plt.show()
 
-        # --- BIỂU ĐỒ 2: HEATMAP MA TRẬN R2 SCORE (FEATURES VS MODELS) ---
+        # --- CHART 2: R2 SCORE MATRIX HEATMAP (FEATURES VS MODELS) ---
         pivot_r2 = feature_details_df.pivot(
             index="Feature", columns="Model", values="Val_R2"
         )
-        # Sắp xếp các Feature theo điểm R2 trung bình từ cao xuống thấp
+        # Sort features by mean R2 score descending
         pivot_r2["Mean_R2"] = pivot_r2.mean(axis=1)
         pivot_r2 = pivot_r2.sort_values("Mean_R2", ascending=False).drop(
             columns=["Mean_R2"]
@@ -289,17 +330,20 @@ def run_auto_benchmark_experiment_3(
         plt.xticks(rotation=45, ha="right")
         plt.tight_layout()
 
-        # 🖼️ LƯU ẢNH BIỂU ĐỒ HEATMAP R2
-        heatmap_img_path = output_dir / "forecast_auto_benchmark_val_r2_heatmap.png"
+        # 🖼️ SAVE R2 HEATMAP IMAGE
+        heatmap_img_path = (
+            output_dir / "forecast_auto_benchmark_val_r2_heatmap.png"
+        )
         plt.savefig(heatmap_img_path, dpi=300, bbox_inches="tight")
-        print(f"🖼️ Đã lưu ảnh biểu đồ Heatmap R²: {heatmap_img_path.name}")
+        print(f"🖼️ Saved R² Heatmap image: {heatmap_img_path.name}")
         plt.show()
 
-    print(f"\n=======================================================")
-    print(f"🎉 TẤT CẢ FILE CSV VÀ ẢNH BIỂU ĐỒ ĐÃ ĐƯỢC LƯU TẠI: {output_dir}")
+    print("\n=======================================================")
+    print(f"🎉 ALL CSV FILES AND CHART IMAGES SAVED TO: {output_dir}")
     print("=======================================================")
 
     return results_df, feature_details_df
+
 
 def evaluate_linear_regression_on_test(
     X_train: pd.DataFrame,
@@ -310,12 +354,15 @@ def evaluate_linear_regression_on_test(
     test_csv_file: Path | None = None,
     plot_results: bool = True,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Đánh giá chuyên sâu mô hình Linear Regression trên tập TEST (2021-2024):
+    """In-depth evaluation of the Linear Regression model on the TEST set
+    (2021-2024):
 
-    1. Bảng kết quả tổng thể: Model, Test_Mean_R2, Test_Mean_MAE, Test_Mean_RMSE.
-    2. Bảng chi tiết từng Feature: Feature, Test_R2, Test_MAE, Test_RMSE.
-    3. Bảng sai số từng Quốc gia - từng Năm: country_code_3, country_name, year, MAE, RMSE, Euclidean dis, Cosine similarity.
-    4. Xuất 3 file CSV và lưu ảnh biểu đồ R2.
+    1. Overall results table: Model, Test_Mean_R2, Test_Mean_MAE,
+    Test_Mean_RMSE.
+    2. Per-feature details table: Feature, Test_R2, Test_MAE, Test_RMSE.
+    3. Country-Year error metrics table: country_code_3, country_name, year,
+    MAE, RMSE, Euclidean distance, Cosine similarity.
+    4. Exports 3 CSV files and saves the R2 plot image.
     """
     if output_dir is None:
         output_dir = paths.RESULTS_EXPERIMENT3_DIR
@@ -326,18 +373,20 @@ def evaluate_linear_regression_on_test(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print("=======================================================")
-    print("🎯 ĐÁNH GIÁ MÔ HÌNH LINEAR REGRESSION TRÊN TẬP TEST (2021-2024)")
+    print(
+        "🎯 EVALUATING LINEAR REGRESSION MODEL ON TEST SET (2021-2024)"
+    )
     print("=======================================================\n")
 
-    # 1. HUẤN LUYỆN MÔ HÌNH LINEAR REGRESSION
+    # 1. TRAIN LINEAR REGRESSION MODEL
     model_name = "Linear Regression"
     model = LinearRegression()
     model.fit(X_train, Y_train)
 
-    # 2. DỰ BÁO TRÊN TẬP TEST
+    # 2. PREDICT ON TEST SET
     Y_test_pred = model.predict(X_test)
 
-    # 3. CHỈ SỐ TỔNG THỂ (OVERALL METRICS)
+    # 3. OVERALL METRICS
     mean_r2 = r2_score(Y_test, Y_test_pred, multioutput="uniform_average")
     mean_mae = mean_absolute_error(Y_test, Y_test_pred)
     mean_rmse = np.sqrt(mean_squared_error(Y_test, Y_test_pred))
@@ -353,17 +402,19 @@ def evaluate_linear_regression_on_test(
         ]
     )
 
-    print("📊 1. BẢNG TỔNG HỢP HIỆU NĂNG TẬP TEST:")
+    print("📊 1. OVERALL TEST SET PERFORMANCE SUMMARY:")
     print(test_results_df.to_string(index=False))
 
-    # 💾 LƯU BẢNG TỔNG HỢP RA CSV
+    # 💾 SAVE OVERALL SUMMARY TABLE TO CSV
     test_results_csv = output_dir / "linear_regression_test_results.csv"
     test_results_df.to_csv(test_results_csv, index=False, encoding="utf-8")
-    print(f"\n📁 Đã lưu file CSV tổng hợp: {test_results_csv.name}")
+    print(f"\n📁 Saved overall summary CSV: {test_results_csv.name}")
 
-    # 4. CHỈ SỐ CHI TIẾT THEO TỪNG FEATURE (PER-FEATURE METRICS)
+    # 4. PER-FEATURE METRICS
     r2_raw = r2_score(Y_test, Y_test_pred, multioutput="raw_values")
-    mae_raw = mean_absolute_error(Y_test, Y_test_pred, multioutput="raw_values")
+    mae_raw = mean_absolute_error(
+        Y_test, Y_test_pred, multioutput="raw_values"
+    )
     rmse_raw = np.sqrt(
         mean_squared_error(Y_test, Y_test_pred, multioutput="raw_values")
     )
@@ -388,15 +439,15 @@ def evaluate_linear_regression_on_test(
         .reset_index(drop=True)
     )
 
-    print("\n🔥 2. BẢNG CHI TIẾT CÁC CHỈ SỐ TRÊN TẬP TEST CHO TỪNG FEATURE:")
+    print("\n🔥 2. PER-FEATURE METRIC DETAILS ON TEST SET:")
     print(test_feature_details_df.to_string(index=False))
 
-    # 💾 LƯU BẢNG CHI TIẾT TỪNG FEATURE RA CSV
+    # 💾 SAVE PER-FEATURE DETAILS TO CSV
     feature_csv = output_dir / "linear_regression_test_feature_details.csv"
     test_feature_details_df.to_csv(feature_csv, index=False, encoding="utf-8")
-    print(f"\n📁 Đã lưu file CSV chi tiết từng Feature: {feature_csv.name}")
+    print(f"\n📁 Saved per-feature details CSV: {feature_csv.name}")
 
-    # 5. TÍNH BẢNG SAI SỐ THEO TỪNG QUỐC GIA - TỪNG NĂM (COUNTRY-YEAR ERROR METRICS)
+    # 5. CALCULATE COUNTRY-YEAR ERROR METRICS
     country_year_df = pd.DataFrame()
     if test_csv_file.exists():
         test_meta = pd.read_csv(test_csv_file)[
@@ -406,17 +457,19 @@ def evaluate_linear_regression_on_test(
         Y_true_vals = Y_test.values
         Y_pred_vals = Y_test_pred
 
-        # Tính toán theo từng dòng (từng mẫu quốc gia - năm trên 20 đặc trưng)
-        # a) MAE hàng
+        # Row-wise computation (each country-year sample across 20 features)
+        # a) Row MAE
         row_mae = np.mean(np.abs(Y_true_vals - Y_pred_vals), axis=1)
 
-        # b) RMSE hàng
+        # b) Row RMSE
         row_rmse = np.sqrt(np.mean((Y_true_vals - Y_pred_vals) ** 2, axis=1))
 
-        # c) Khoảng cách Euclidean thực tế và dự báo
-        row_euclidean = np.sqrt(np.sum((Y_true_vals - Y_pred_vals) ** 2, axis=1))
+        # c) Row Euclidean distance between actual and predicted
+        row_euclidean = np.sqrt(
+            np.sum((Y_true_vals - Y_pred_vals) ** 2, axis=1)
+        )
 
-        # d) Độ tương đồng Cosine thực tế và dự báo
+        # d) Row Cosine similarity between actual and predicted
         dot_product = np.sum(Y_true_vals * Y_pred_vals, axis=1)
         norm_true = np.linalg.norm(Y_true_vals, axis=1)
         norm_pred = np.linalg.norm(Y_pred_vals, axis=1)
@@ -426,7 +479,7 @@ def evaluate_linear_regression_on_test(
             {
                 "country_code_3": test_meta["country_code_3"],
                 "country_name": test_meta["country_name"],
-                "year": test_meta["year"] + 1,  # Năm t + 1 = 2021 đến 2024
+                "year": test_meta["year"] + 1,  # Year t + 1 = 2021 to 2024
                 "MAE": row_mae,
                 "RMSE": row_rmse,
                 "Euclidean_distance": row_euclidean,
@@ -434,15 +487,23 @@ def evaluate_linear_regression_on_test(
             }
         ).sort_values(["country_code_3", "year"]).reset_index(drop=True)
 
-        # 💾 LƯU BẢNG SAI SỐ THEO QUỐC GIA - NĂM RA CSV
-        country_year_csv = output_dir / "linear_regression_test_country_year_errors.csv"
-        country_year_df.to_csv(country_year_csv, index=False, encoding="utf-8")
+        # 💾 SAVE COUNTRY-YEAR ERROR METRICS TO CSV
+        country_year_csv = (
+            output_dir / "linear_regression_test_country_year_errors.csv"
+        )
+        country_year_df.to_csv(
+            country_year_csv, index=False, encoding="utf-8"
+        )
 
-        print("\n📍 3. BẢNG SAI SỐ CHI TIẾT THEO QUỐC GIA - NĂM 2021-2024 (HEAD 10):")
+        print(
+            "\n📍 3. DETAILED COUNTRY-YEAR ERROR METRICS 2021-2024 (HEAD 10):"
+        )
         print(country_year_df.head(10).to_string(index=False))
-        print(f"\n📁 Đã lưu file CSV sai số theo Quốc gia - Năm: {country_year_csv.name}")
+        print(
+            f"\n📁 Saved Country-Year error metrics CSV: {country_year_csv.name}"
+        )
 
-    # 6. VẼ VÀ LƯU BIỂU ĐỒ R2 SCORE TRÊN TẬP TEST
+    # 6. PLOT AND SAVE TEST R2 SCORE CHART
     if plot_results:
         plt.figure(figsize=(10, 8))
         bars = plt.barh(
@@ -453,7 +514,8 @@ def evaluate_linear_regression_on_test(
         )
 
         plt.title(
-            "Linear Regression - Test R² Score across 20 Indicators (2021-2024)",
+            "Linear Regression - Test R² Score across 20 Indicators"
+            " (2021-2024)",
             fontsize=12,
             fontweight="bold",
         )
@@ -474,31 +536,34 @@ def evaluate_linear_regression_on_test(
 
         plt.tight_layout()
 
-        # 🖼️ LƯU ẢNH BIỂU ĐỒ
+        # 🖼️ SAVE CHART IMAGE
         img_path = output_dir / "linear_regression_test_feature_r2.png"
         plt.savefig(img_path, dpi=300, bbox_inches="tight")
-        print(f"🖼️ Đã lưu ảnh biểu đồ Test R²: {img_path.name}")
+        print(f"🖼️ Saved Test R² plot image: {img_path.name}")
 
         plt.show()
 
-    print(f"\n=======================================================")
+    print("\n=======================================================")
     print(
-        f"🎉 TẤT CẢ FILE KẾT QUẢ TEST LINEAR REGRESSION ĐÃ ĐƯỢC LƯU TẠI: {output_dir}"
+        "🎉 ALL LINEAR REGRESSION TEST RESULTS SAVED TO: "
+        f"{output_dir}"
     )
     print("=======================================================")
 
     return test_results_df, test_feature_details_df, country_year_df
+
 
 def plot_global_yearly_boxplot(
     country_year_df: pd.DataFrame,
     metric: str = "Cosine_similarity",
     save_path: Path | str | None = None,
 ):
-    """Plots a boxplot showing the distribution of scores across all countries by year.
+    """Plots a boxplot showing the distribution of scores across all countries by
+    year.
 
     Auto-saves to paths.RESULTS_EXPERIMENT3_DIR if save_path is None.
     """
-    # 1. Tự động xác định đường dẫn lưu mặc định nếu save_path là None
+    # 1. Automatically determine default save path if save_path is None
     if save_path is None:
         metric_lower = metric.lower().replace(" ", "_")
         if "cosine_similarity" in metric_lower:
@@ -519,18 +584,18 @@ def plot_global_yearly_boxplot(
     else:
         save_path = Path(save_path)
 
-    # Tự động tạo thư mục nếu chưa có
+    # Automatically create directory if it does not exist
     save_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # 2. Vẽ biểu đồ Boxplot
+    # 2. Plot Boxplot
     plt.figure(figsize=(8, 6))
     sns.boxplot(
         data=country_year_df,
         x="year",
         y=metric,
-        hue="year",  # Gán biến x vào hue để tránh cảnh báo deprecation
+        hue="year",  # Assign x to hue to avoid deprecation warning
         palette="Set2",
-        legend=False,  # Tắt chú thích legend thừa
+        legend=False,  # Turn off redundant legend
         showmeans=True,
         meanprops={
             "marker": "o",
@@ -549,7 +614,7 @@ def plot_global_yearly_boxplot(
     plt.grid(True, linestyle="--", alpha=0.5)
     plt.tight_layout()
 
-    # 3. Lưu hình ảnh và hiển thị
+    # 3. Save image and display
     plt.savefig(save_path, dpi=300, bbox_inches="tight")
     print(f"🖼️ Boxplot image saved to: {save_path.name}")
 
@@ -562,36 +627,39 @@ def plot_country_stability_scatter_chart(
     csv_output_path: Path | str | None = None,
     show_fig: bool = True,
     marker_size: int = 10,
-    x_max: float | None = 2.5,  # Giới hạn trục X để loại bỏ ngoại lệ ZWE
-    y_max: float | None = 1.5,  # Giới hạn trục Y
+    x_max: float | None = 2.5,  # X-axis limit to exclude outlier ZWE
+    y_max: float | None = 1.5,  # Y-axis limit
 ) -> pd.DataFrame:
-    """Tự động tính toán country_stability_df, lưu file CSV thống kê độ ổn định
+    """Calculates country_stability_df, saves stability statistics CSV, and
 
-    và tạo/lưu biểu đồ Plotly Scatter Plot tương tác theo Quốc gia.
+    generates/saves an interactive Plotly Scatter Plot by country.
 
     Parameters
     ----------
     country_year_df : pd.DataFrame
-        DataFrame chứa các cột: country_code_3, country_name, year, RMSE, Cosine_similarity (hoặc Cosine similarity).
+        DataFrame containing columns: country_code_3, country_name, year,
+        RMSE, Cosine_similarity (or Cosine similarity).
     output_path : Path | str, optional
-        Đường dẫn lưu file HTML tương tác. Mặc định: country_stability_interactive.html
+        Path to save interactive HTML file. Default:
+        country_stability_interactive.html
     csv_output_path : Path | str, optional
-        Đường dẫn lưu file CSV thống kê độ ổn định. Mặc định: linear_regression_country_stability.csv
+        Path to save stability statistics CSV file. Default:
+        linear_regression_country_stability.csv
     show_fig : bool, default=True
-        Có hiển thị biểu đồ trực tiếp trên Jupyter/Colab hay không.
+        Whether to display the figure directly in Jupyter/Colab.
     marker_size : int, default=10
-        Kích thước cố định của các điểm marker.
+        Fixed size of marker points.
     x_max : float | None, default=2.5
-        Giới hạn trên của trục X.
+        Upper limit for X-axis.
     y_max : float | None, default=1.5
-        Giới hạn trên của trục Y.
+        Upper limit for Y-axis.
 
     Returns
     -------
     pd.DataFrame
-        Trả về country_stability_df đã được gom nhóm và tính toán.
+        Returns grouped and calculated country_stability_df.
     """
-    # 1. Tự động xác định đường dẫn lưu file HTML và CSV
+    # 1. Automatically determine save paths for HTML and CSV files
     if output_path is None:
         output_path = (
             paths.RESULTS_EXPERIMENT3_DIR
@@ -611,14 +679,14 @@ def plot_country_stability_scatter_chart(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     csv_output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # 2. Tự động nhận diện tên cột Similarity (có gạch dưới hoặc khoảng trắng)
+    # 2. Automatically detect similarity column name (with underscore or space)
     sim_col = (
         "Cosine_similarity"
         if "Cosine_similarity" in country_year_df.columns
         else "Cosine similarity"
     )
 
-    # 3. TÍNH TOÁN country_stability_df TỪ country_year_df
+    # 3. CALCULATE country_stability_df FROM country_year_df
     country_stability_df = (
         country_year_df.groupby(["country_code_3", "country_name"])
         .agg(
@@ -630,13 +698,11 @@ def plot_country_stability_scatter_chart(
         .reset_index()
     )
 
-    # 💾 4. LƯU BẢNG THỐNG KÊ ĐỘ ỔN ĐỊNH RA FILE CSV
-    country_stability_df.to_csv(
-        csv_output_path, index=False, encoding="utf-8"
-    )
-    print(f"📁 Đã lưu file thống kê độ ổn định: {csv_output_path.name}")
+    # 💾 4. SAVE STABILITY STATISTICS TO CSV
+    country_stability_df.to_csv(csv_output_path, index=False, encoding="utf-8")
+    print(f"📁 Saved stability statistics file: {csv_output_path.name}")
 
-    # 5. TẠO BIỂU ĐỒ SCATTER PLOT TƯƠNG TÁC BẰNG PLOTLY
+    # 5. CREATE INTERACTIVE SCATTER PLOT WITH PLOTLY
     fig = px.scatter(
         country_stability_df,
         x="RMSE_Mean",
@@ -658,7 +724,7 @@ def plot_country_stability_scatter_chart(
         template="plotly_white",
     )
 
-    # 6. Tùy chỉnh markers
+    # 6. Customize markers
     fig.update_traces(
         marker=dict(
             size=marker_size,
@@ -667,24 +733,24 @@ def plot_country_stability_scatter_chart(
         )
     )
 
-    # Thêm 2 đường trung vị phân chia 4 góc phần tư
+    # Add 2 median lines dividing into 4 quadrants
     median_x = country_stability_df["RMSE_Mean"].median()
     median_y = country_stability_df["RMSE_Std"].median()
 
     fig.add_vline(
         x=median_x, line_dash="dash", line_color="red", opacity=0.6
-    )  # Phân chia theo Mean
+    )  # Split by Mean
     fig.add_hline(
         y=median_y, line_dash="dash", line_color="green", opacity=0.6
-    )  # Phân chia theo Std Dev
+    )  # Split by Std Dev
 
-    # 7. Zoom vào vùng dữ liệu tập trung
+    # 7. Zoom into dense data region
     if x_max is not None:
         fig.update_xaxes(range=[0, x_max])
     if y_max is not None:
         fig.update_yaxes(range=[0, y_max])
 
-    # 💾 8. LƯU FILE HTML TƯƠNG TÁC
+    # 💾 8. SAVE INTERACTIVE HTML FILE
     fig.write_html(str(output_path))
     print(f"📁 Interactive HTML chart saved to: {output_path.name}")
 
@@ -693,41 +759,45 @@ def plot_country_stability_scatter_chart(
 
     return country_stability_df
 
+
 if __name__ == "__main__":
-    # 1. Tải dữ liệu các tập cho Experiment 3 (Forecast 20 chỉ số)
+    # 1. Load dataset splits for Experiment 3 (20-indicator forecast)
     (
-        X_train_exp3, y_train_exp3,
-        X_val_exp3, y_val_exp3,
-        X_test_exp3, y_test_exp3
+        X_train_exp3,
+        y_train_exp3,
+        X_val_exp3,
+        y_val_exp3,
+        X_test_exp3,
+        y_test_exp3,
     ) = load_experiment_3()
 
-    # 2. Khởi chạy Auto-Benchmark so sánh 9 mô hình Hồi quy Đa đầu ra trên tập Validation
-    print("\n🚀 Đang chạy Auto-Benchmark cho Experiment 3...")
+    # 2. Run Auto-Benchmark comparing 9 Multi-Output Regression models on the Validation set
+    print("\n🚀 Running Auto-Benchmark for Experiment 3...")
     benchmark_results_df = run_auto_benchmark_experiment_3(
         X_train=X_train_exp3,
         Y_train=y_train_exp3,
         X_val=X_val_exp3,
         Y_val=y_val_exp3,
-        plot_results=True
+        plot_results=True,
     )
 
-    # 3. Đánh giá Linear Regression trên tập Test
-    test_results_df, test_feature_details_df, country_year_df = evaluate_linear_regression_on_test(
-        X_train=X_train_exp3,
-        Y_train=y_train_exp3,
-        X_test=X_test_exp3,
-        Y_test=y_test_exp3,
-        plot_results=True
-    )
-    # 1. Lưu biểu đồ Boxplot cho Cosine Similarity theo năm
-    plot_global_yearly_boxplot(
-        country_year_df, 
-        metric="Cosine_similarity"
-    )
-    # 2. Lưu biểu đồ Boxplot cho RMSE theo năm
-    plot_global_yearly_boxplot(
-        country_year_df,
-        metric="RMSE"
+    # 3. Evaluate Linear Regression model on Test set
+    test_results_df, test_feature_details_df, country_year_df = (
+        evaluate_linear_regression_on_test(
+            X_train=X_train_exp3,
+            Y_train=y_train_exp3,
+            X_test=X_test_exp3,
+            Y_test=y_test_exp3,
+            plot_results=True,
+        )
     )
 
-    country_stability_df = plot_country_stability_scatter_chart(country_year_df)
+    # 1. Save Boxplot chart for Cosine Similarity by year
+    plot_global_yearly_boxplot(country_year_df, metric="Cosine_similarity")
+
+    # 2. Save Boxplot chart for RMSE by year
+    plot_global_yearly_boxplot(country_year_df, metric="RMSE")
+
+    country_stability_df = plot_country_stability_scatter_chart(
+        country_year_df
+    )

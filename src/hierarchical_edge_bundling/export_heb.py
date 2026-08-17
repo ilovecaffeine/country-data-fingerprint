@@ -1,17 +1,17 @@
 # src/hierarchical_edge_bundling/export_heb.py
-# cd "C:\Users\admin\Documents\Code_for_fun\country-data-fingerprint"
+# cd country-data-fingerprint
 # python -m src.hierarchical_edge_bundling.export_heb
 
 import json
 from pathlib import Path
-import pandas as pd
 import numpy as np
+import pandas as pd
 from config import paths
 
 
-# Bảng tra cứu Châu lục cho 194 quốc gia (Mã ISO 3 - Không chứa Vatican VAT)
+# Continent Lookup Table for 194 countries (ISO3 codes - Excluding Vatican City/VAT)
 continent_map = {
-    # ================= Châu Á (Asia) - 47 nước =================
+    # ================= Asia - 47 countries =================
     'AFG': 'Asia', 'ARE': 'Asia', 'ARM': 'Asia', 'AZE': 'Asia', 'BGD': 'Asia', 
     'BHR': 'Asia', 'BRN': 'Asia', 'KHM': 'Asia', 'CHN': 'Asia', 'CYP': 'Asia', 
     'GEO': 'Asia', 'IDN': 'Asia', 'IND': 'Asia', 'IRN': 'Asia', 'IRQ': 'Asia', 
@@ -23,7 +23,7 @@ continent_map = {
     'TJK': 'Asia', 'TKM': 'Asia', 'TLS': 'Asia', 'TUR': 'Asia', 'UZB': 'Asia', 
     'VNM': 'Asia', 'YEM': 'Asia', 'BTN': 'Asia',
 
-    # ================= Châu Âu (Europe) - 43 nước =================
+    # ================= Europe - 43 countries =================
     'ALB': 'Europe', 'AND': 'Europe', 'AUT': 'Europe', 'BEL': 'Europe', 'BGR': 'Europe', 
     'BIH': 'Europe', 'BLR': 'Europe', 'CHE': 'Europe', 'CZE': 'Europe', 'DEU': 'Europe', 
     'DNK': 'Europe', 'ESP': 'Europe', 'EST': 'Europe', 'FIN': 'Europe', 'FRA': 'Europe', 
@@ -34,7 +34,7 @@ continent_map = {
     'ROU': 'Europe', 'RUS': 'Europe', 'SMR': 'Europe', 'SRB': 'Europe', 'SVK': 'Europe', 
     'SVN': 'Europe', 'SWE': 'Europe', 'UKR': 'Europe', 
 
-    # ================= Châu Phi (Africa) - 54 nước =================
+    # ================= Africa - 54 countries =================
     'AGO': 'Africa', 'BDI': 'Africa', 'BEN': 'Africa', 'BFA': 'Africa', 'BWA': 'Africa', 
     'CAF': 'Africa', 'CIV': 'Africa', 'CMR': 'Africa', 'COD': 'Africa', 'COG': 'Africa', 
     'COM': 'Africa', 'CPV': 'Africa', 'DJI': 'Africa', 'DZA': 'Africa', 'EGY': 'Africa', 
@@ -47,7 +47,7 @@ continent_map = {
     'TCD': 'Africa', 'TGO': 'Africa', 'TUN': 'Africa', 'TZA': 'Africa', 'UGA': 'Africa', 
     'ZAF': 'Africa', 'ZMB': 'Africa', 'ZWE': 'Africa', 'KEN': 'Africa', 'SWZ': 'Africa',
 
-    # ================= Bắc Mỹ (North America) - 23 nước =================
+    # ================= North America - 23 countries =================
     'ATG': 'North America', 'BHS': 'North America', 'BLZ': 'North America', 
     'BRB': 'North America', 'CAN': 'North America', 'CRI': 'North America', 
     'CUB': 'North America', 'DMA': 'North America', 'DOM': 'North America', 
@@ -57,13 +57,13 @@ continent_map = {
     'PAN': 'North America', 'SLV': 'North America', 'TTO': 'North America', 
     'USA': 'North America', 'VCT': 'North America',
 
-    # ================= Nam Mỹ (South America) - 12 nước =================
+    # ================= South America - 12 countries =================
     'ARG': 'South America', 'BOL': 'South America', 'BRA': 'South America', 
     'CHL': 'South America', 'COL': 'South America', 'ECU': 'South America', 
     'GUY': 'South America', 'PER': 'South America', 'PRY': 'South America', 
     'SUR': 'South America', 'URY': 'South America', 'VEN': 'South America',
 
-    # ================= Châu Đại Dương (Oceania) - 14 nước =================
+    # ================= Oceania - 14 countries =================
     'AUS': 'Oceania', 'FJI': 'Oceania', 'FSM': 'Oceania', 'KIR': 'Oceania', 
     'MHL': 'Oceania', 'NRU': 'Oceania', 'NZL': 'Oceania', 'PLW': 'Oceania', 
     'PNG': 'Oceania', 'SLB': 'Oceania', 'TON': 'Oceania', 'TUV': 'Oceania', 
@@ -76,25 +76,25 @@ def get_close_distance_pairs_by_year(
     top_k: int = 3,
     matrices_dir: Path | None = None,
 ) -> pd.DataFrame:
-    """Đọc ma trận khoảng cách Euclidean của một năm và lấy Top-K hàng xóm gần nhất (loại bỏ chính nó)."""
+    """Reads the Euclidean distance matrix for a given year and extracts the Top-K nearest neighbors (excluding self)."""
     if matrices_dir is None:
         matrices_dir = paths.RESULTS_EXPERIMENT1_DIR / "distance_matrices"
 
     file_path = matrices_dir / f"euclidean_matrix_{year}.csv"
 
     if not file_path.exists():
-        raise FileNotFoundError(f"[ERROR] Không tìm thấy file ma trận: {file_path}")
+        raise FileNotFoundError(f"[ERROR] Matrix file not found: {file_path}")
 
-    # 1. Đọc ma trận khoảng cách
+    # 1. Read distance matrix
     df_mat = pd.read_csv(file_path, index_col=0)
 
-    # 2. Lấy Top-K hàng xóm gần nhất cho từng quốc gia (loại bỏ chính nó)
+    # 2. Extract Top-K nearest neighbors for each country (excluding self)
     pairs = []
     for country, row in df_mat.iterrows():
-        # ĐẢM BẢO: Loại bỏ chính quốc gia đó ra khỏi danh sách so sánh
+        # ENSURE: Remove the country itself from comparison
         row_no_self = row.drop(labels=[country], errors="ignore")
         
-        # Lấy top_k quốc gia có khoảng cách nhỏ nhất
+        # Extract top_k countries with smallest distance
         top_k_neighbors = row_no_self.nsmallest(top_k).index.tolist()
         
         for neighbor in top_k_neighbors:
@@ -102,41 +102,42 @@ def get_close_distance_pairs_by_year(
 
     df_pairs = pd.DataFrame(pairs)
 
-    # 3. Sắp xếp cặp vô hướng và loại bỏ trùng lặp & loại bỏ self-loop (nếu có)
+    # 3. Sort undirected pairs, remove duplicates and self-loops (if any)
     sorted_pairs = np.sort(df_pairs[["Country1", "Country2"]].values, axis=1)
     df_filtered = (
         pd.DataFrame(sorted_pairs, columns=["Country1", "Country2"])
         .drop_duplicates()
     )
     
-    # Bổ sung bộ lọc loại bỏ các cặp trùng tên (Country1 == Country2)
+    # Additional filter to remove identical country pairs (Country1 == Country2)
     df_filtered = df_filtered[df_filtered["Country1"] != df_filtered["Country2"]].reset_index(drop=True)
 
     return df_filtered
+
+
 def get_close_cosine_pairs_by_year(
     year: int | str,
     top_k: int = 3,
     matrices_dir: Path | None = None,
 ) -> pd.DataFrame:
-    """Đọc ma trận Cosine của một năm và lấy Top-K hàng xóm gần nhất (loại bỏ chính nó)."""
+    """Reads the Cosine matrix for a given year and extracts the Top-K nearest neighbors (excluding self)."""
     if matrices_dir is None:
         matrices_dir = paths.RESULTS_EXPERIMENT1_DIR / "cosine_matrices"
 
     file_path = matrices_dir / f"cosine_similarity_matrix_{year}.csv"
 
     if not file_path.exists():
-        raise FileNotFoundError(f"[ERROR] Không tìm thấy file ma trận Cosine: {file_path}")
+        raise FileNotFoundError(f"[ERROR] Cosine matrix file not found: {file_path}")
 
-    # 1. Đọc ma trận Cosine
+    # 1. Read Cosine matrix
     df_mat = pd.read_csv(file_path, index_col=0)
 
-    # 2. Lấy Top-K hàng xóm gần nhất cho từng quốc gia (loại bỏ chính nó)
+    # 2. Extract Top-K nearest neighbors for each country (excluding self)
     pairs = []
     for country, row in df_mat.iterrows():
         row_no_self = row.drop(labels=[country], errors="ignore")
         
-        # Nếu ma trận là Cosine Distance (giá trị càng nhỏ càng gần): dùng nsmallest
-        # (Nếu ma trận của bạn là Cosine Similarity - giá trị càng lớn càng gần: đổi thành nlargest)
+        # Uses nlargest assuming matrix contains Cosine Similarity (higher = closer)
         top_k_neighbors = row_no_self.nlargest(top_k).index.tolist()
         
         for neighbor in top_k_neighbors:
@@ -144,12 +145,13 @@ def get_close_cosine_pairs_by_year(
 
     df_pairs = pd.DataFrame(pairs)
 
-    # 3. Sắp xếp cặp vô hướng & xóa trùng lặp & loại bỏ self-loop
+    # 3. Sort undirected pairs, remove duplicates, and remove self-loops
     sorted_pairs = np.sort(df_pairs[["Country1", "Country2"]].values, axis=1)
     df_filtered = pd.DataFrame(sorted_pairs, columns=["Country1", "Country2"]).drop_duplicates()
     df_filtered = df_filtered[df_filtered["Country1"] != df_filtered["Country2"]].reset_index(drop=True)
 
     return df_filtered
+
 
 def generate_true_heb_html(
     df_pairs: pd.DataFrame,
@@ -158,20 +160,20 @@ def generate_true_heb_html(
     title: str = "Hierarchical Edge Bundling"
 ):
     """
-    Tạo biểu đồ Hierarchical Edge Bundling chuẩn D3.js:
-    - Gán kết nối 2 chiều hai bên đảm bảo ĐỦ TỐI THIỂU k dây cho mỗi nước.
-    - Khử trùng lặp đường vẽ SVG trong D3 để nét vẽ mịn đẹp.
-    - Highlight chính xác k dây nối và k hàng xóm khi hover.
+    Generates a standard D3.js Hierarchical Edge Bundling diagram:
+    - Assigns bi-directional connections to guarantee AT LEAST k edges per country.
+    - Deduplicates SVG rendered paths in D3 for smooth rendering.
+    - Highlights exact k connecting links and k neighbors on hover.
     """
     col_a = df_pairs.columns[0]
     col_b = df_pairs.columns[1]
 
-    # 1. Lấy danh sách tất cả các quốc gia có trong df_pairs
+    # 1. Collect list of all unique countries present in df_pairs
     active_countries = set(df_pairs[col_a].astype(str).str.strip()).union(
         set(df_pairs[col_b].astype(str).str.strip())
     )
 
-    # 2. Thu thập kết nối 2 CHIỀU (Bi-directional)
+    # 2. Collect BI-DIRECTIONAL connections
     connections = {}
     for _, row in df_pairs.iterrows():
         c1 = str(row[col_a]).strip()
@@ -182,7 +184,7 @@ def generate_true_heb_html(
             p1 = f"World.{cont1}.{c1}"
             p2 = f"World.{cont2}.{c2}"
 
-            # Gán kết nối 2 chiều cho cả c1 và c2
+            # Assign bi-directional connections for both c1 and c2
             if p1 not in connections:
                 connections[p1] = set()
             connections[p1].add(p2)
@@ -191,7 +193,7 @@ def generate_true_heb_html(
                 connections[p2] = set()
             connections[p2].add(p1)
 
-    # 3. Tạo Cây phân cấp
+    # 3. Build Hierarchy Tree
     continents = {}
     for country_code in sorted(active_countries):
         continent = continent_map.get(country_code, 'Other')
@@ -217,7 +219,7 @@ def generate_true_heb_html(
         ]
     }
 
-    # 4. Mẫu HTML/JS D3.js v7 chuẩn
+    # 4. D3.js v7 Standard HTML/JS Template
     html_content = f"""<!DOCTYPE html>
 <html>
 <head>
@@ -281,7 +283,7 @@ def generate_true_heb_html(
             .radius(d => d.y)
             .angle(d => d.x);
 
-        // KHỬ TRÙNG LẶP DÂY VẼ (Chỉ giữ 1 đường nối duy nhất cho mỗi cặp)
+        // DEDUPLICATE DRAWING PATHS (Keep only 1 unique connection per pair)
         const allOutgoing = root.leaves().flatMap(leaf => leaf.outgoing);
         const uniqueLinksMap = new Map();
         allOutgoing.forEach(l => {{
@@ -294,7 +296,7 @@ def generate_true_heb_html(
         }});
         const uniqueLinks = Array.from(uniqueLinksMap.values());
 
-        // Vẽ dây nối SVG
+        // Render SVG Links
         const link = svg.append("g")
           .selectAll("path")
           .data(uniqueLinks)
@@ -303,7 +305,7 @@ def generate_true_heb_html(
             .attr("d", ([i, o]) => line(i.path(o)))
             .each(function(d) {{ d.path = this; }});
 
-        // Tên các nước
+        // Render Country Labels
         const node = svg.append("g")
           .selectAll("g")
           .data(root.leaves())
@@ -323,20 +325,20 @@ def generate_true_heb_html(
             .on("mouseout", outed);
 
         function overed(event, d) {{
-            // 1. Làm mờ toàn bộ dây nối và tên nước khác
+            // 1. Dim all unselected links and country names
             link.style("stroke-opacity", 0.04).style("stroke-width", "1px");
             d3.selectAll(".node").style("opacity", 0.15);
 
-            // 2. Highlight tên nước hiện tại
+            // 2. Highlight selected country label
             d3.select(d.textNode)
                 .style("opacity", 1)
                 .attr("font-weight", "bold")
                 .attr("font-size", "14px");
 
-            // 3. Lọc tất cả các dây trong uniqueLinks có dính tới node d
+            // 3. Filter links connected to node d
             const activeLinks = uniqueLinks.filter(l => l[0] === d || l[1] === d);
 
-            // 4. Highlight chính xác các dây đó và các nước hàng xóm
+            // 4. Highlight active links and neighbor labels
             activeLinks.forEach(l => {{
                 if (l.path) {{
                     d3.select(l.path)
@@ -361,7 +363,7 @@ def generate_true_heb_html(
         }}
 
         function outed(event, d) {{
-            // Khôi phục lại trạng thái ban đầu
+            // Restore default view state
             link.style("stroke-opacity", 0.25)
                 .style("stroke-width", "1px")
                 .style("stroke", "#7f8c8d");
@@ -398,6 +400,8 @@ def generate_true_heb_html(
         f.write(html_content)
 
     return html_file_path
+
+
 def plot_distance_hierarchical_edge_bundling_by_year(
     year: int | str,
     continent_map: dict[str, str],
@@ -406,7 +410,7 @@ def plot_distance_hierarchical_edge_bundling_by_year(
     filepath_html: str | None = None,
     show_fig: bool = False,
 ) -> Path | None:
-    """Xuất biểu đồ Hierarchical Edge Bundling cho một năm nhất định."""
+    """Exports the Hierarchical Edge Bundling chart for a given year based on Euclidean Distance."""
     if output_dir is None:
         output_dir = paths.RESULTS_EXPERIMENT1_DIR / "distance_heb_plots"
 
@@ -417,15 +421,15 @@ def plot_distance_hierarchical_edge_bundling_by_year(
     else:
         html_file_path = output_dir / filepath_html
 
-    print(f"🔄 Đang xử lý biểu đồ HEB cho năm {year}...")
+    print(f"🔄 Processing HEB plot for year {year}...")
 
-    # 1. Trích xuất dữ liệu cặp quốc gia gần nhất
+    # 1. Extract nearest country pairs
     df_pairs = get_close_distance_pairs_by_year(year=year, top_k=top_k)
     if df_pairs.empty:
-        print(f"⚠️ Năm {year} không có dữ liệu cặp quốc gia.")
+        print(f"⚠️ No country pair data available for year {year}.")
         return None
 
-    # 2. Sinh file HTML Hierarchical Edge Bundling chuẩn
+    # 2. Generate standard HEB HTML file
     chart_title = f"Hierarchical Edge Bundling (Distance) - Year {year} (Top-{top_k} Neighbors)"
     generate_true_heb_html(
         df_pairs=df_pairs,
@@ -434,7 +438,7 @@ def plot_distance_hierarchical_edge_bundling_by_year(
         title=chart_title,
     )
 
-    print(f"✅ Đã tạo biểu đồ HEB thành công: {html_file_path}")
+    print(f"✅ HEB chart created successfully: {html_file_path}")
     return html_file_path
 
 
@@ -443,12 +447,12 @@ def export_all_years_distance_heb_plots(
     years: list[int] | range | None = None,
     top_k: int = 3,
 ):
-    """Hàm chạy tự động cho tất cả các năm."""
+    """Automated runner function to export Distance HEB charts across all years."""
     if years is None:
         years = paths.YEARS
 
     print("=======================================================")
-    print("BẮT ĐẦU XUẤT CÁC BIỂU ĐỒ DISTANCE HIERARCHICAL EDGE BUNDLING")
+    print("STARTING DISTANCE HIERARCHICAL EDGE BUNDLING EXPORT")
     print("=======================================================\n")
 
     for yr in years:
@@ -460,7 +464,7 @@ def export_all_years_distance_heb_plots(
         )
 
     print("\n=======================================================")
-    print("🎉 TẤT CẢ CÁC FILE DISTANCE HEB HTML ĐÃ ĐƯỢC TẠO HOÀN TẤT!")
+    print("🎉 ALL DISTANCE HEB HTML FILES CREATED SUCCESSFULLY!")
     print("=======================================================")
 
 
@@ -472,7 +476,7 @@ def plot_cosine_hierarchical_edge_bundling_by_year(
     filepath_html: str | None = None,
     show_fig: bool = False,
 ) -> Path | None:
-    """Xuất biểu đồ Hierarchical Edge Bundling theo khoảng cách Cosine cho một năm nhất định."""
+    """Exports the Hierarchical Edge Bundling chart for a given year based on Cosine Similarity."""
     if output_dir is None:
         output_dir = paths.RESULTS_EXPERIMENT1_DIR / "cosine_heb_plots"
 
@@ -483,15 +487,15 @@ def plot_cosine_hierarchical_edge_bundling_by_year(
     else:
         html_file_path = output_dir / filepath_html
 
-    print(f"🔄 Đang xử lý biểu đồ Cosine HEB cho năm {year}...")
+    print(f"🔄 Processing Cosine HEB plot for year {year}...")
 
-    # 1. Trích xuất dữ liệu cặp quốc gia gần nhất theo khoảng cách Cosine
+    # 1. Extract nearest country pairs based on Cosine Similarity
     df_pairs = get_close_cosine_pairs_by_year(year=year, top_k=top_k)
     if df_pairs.empty:
-        print(f"⚠️ Năm {year} không có dữ liệu cặp quốc gia (Cosine).")
+        print(f"⚠️ No country pair data available for year {year} (Cosine).")
         return None
 
-    # 2. Sinh file HTML Hierarchical Edge Bundling chuẩn
+    # 2. Generate standard HEB HTML file
     chart_title = f"Hierarchical Edge Bundling (Cosine Similarity) - Year {year} (Top-{top_k} Neighbors)"
     generate_true_heb_html(
         df_pairs=df_pairs,
@@ -500,7 +504,7 @@ def plot_cosine_hierarchical_edge_bundling_by_year(
         title=chart_title,
     )
 
-    print(f"✅ Đã tạo biểu đồ Cosine HEB thành công: {html_file_path}")
+    print(f"✅ Cosine HEB chart created successfully: {html_file_path}")
     return html_file_path
 
 
@@ -509,12 +513,12 @@ def export_all_years_cosine_heb_plots(
     years: list[int] | range | None = None,
     top_k: int = 3,
 ):
-    """Hàm chạy tự động xuất biểu đồ Cosine HEB cho tất cả các năm."""
+    """Automated runner function to export Cosine HEB charts across all years."""
     if years is None:
         years = paths.YEARS
 
     print("=======================================================")
-    print("BẮT ĐẦU XUẤT CÁC BIỂU ĐỒ COSINE HIERARCHICAL EDGE BUNDLING")
+    print("STARTING COSINE HIERARCHICAL EDGE BUNDLING EXPORT")
     print("=======================================================\n")
 
     for yr in years:
@@ -526,10 +530,11 @@ def export_all_years_cosine_heb_plots(
         )
 
     print("\n=======================================================")
-    print("🎉 TẤT CẢ CÁC FILE COSINE HEB HTML ĐÃ ĐƯỢC TẠO HOÀN TẤT!")
+    print("🎉 ALL COSINE HEB HTML FILES CREATED SUCCESSFULLY!")
     print("=======================================================")
 
+
 if __name__ == "__main__":
-    # ra 2 matrices distance va cosine
+    # Generate Distance and Cosine HEB visualizations
     export_all_years_distance_heb_plots(continent_map=continent_map)
     export_all_years_cosine_heb_plots(continent_map=continent_map)

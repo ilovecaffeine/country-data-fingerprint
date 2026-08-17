@@ -1,19 +1,18 @@
 # src/models/forecast_then_classify.py
-# cd "C:\Users\admin\Documents\Code_for_fun\country-data-fingerprint"
+# cd country-data-fingerprint
 # python -m src.models.forecast_then_classify
 from pathlib import Path
+from config import paths
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import accuracy_score, f1_score, top_k_accuracy_score
-from config import paths
 
 from src.models.classifier import load_experiment_2_country_classification
 from src.models.forecast import load_experiment_3
-
 
 
 def run_forecast_then_classify_pipeline(
@@ -26,12 +25,12 @@ def run_forecast_then_classify_pipeline(
     label_encoder,
     output_dir: Path | None = None,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Pipeline ghép nối Exp 3 -> Exp 2:
+    """Exp 3 -> Exp 2 Chained Pipeline:
 
-    1. Dùng Linear Regression (Exp 3) dự báo 20 chỉ số tương lai (2021-2024).
-    2. Dùng ExtraTreesClassifier (Exp 2) phân loại quốc gia dựa trên 20 chỉ số dự báo đó.
-    3. Đánh giá xem mô hình có nhận diện ĐÚNG QUỐC GIA từ dấu ấn dự báo hay không.
-    4. Xuất file CSV cặp lỗi, Pivot matrix lỗi và lưu ảnh Heatmap lỗi.
+    1. Use Linear Regression (Exp 3) to forecast 20 future macroeconomic indicators (2021-2024).
+    2. Use ExtraTreesClassifier (Exp 2) to classify countries based on the forecasted indicators.
+    3. Evaluate whether the model correctly identifies countries from their forecasted fingerprints.
+    4. Export misclassification CSV pairs, error Pivot matrix, and save Heatmap image.
     """
     if output_dir is None:
         output_dir = paths.RESULTS_EXPERIMENT4_DIR
@@ -39,15 +38,17 @@ def run_forecast_then_classify_pipeline(
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print("=======================================================")
-    print("🚀 BẮT ĐẦU PIPELINE GHÉP NỐI: FORECAST (EXP 3) -> CLASSIFY (EXP 2)")
+    print(
+        "🚀 STARTING CHAINED PIPELINE: FORECAST (EXP 3) -> CLASSIFY (EXP 2)"
+    )
     print("=======================================================\n")
 
-    # 1. BƯỚC 1: TRAIN LINEAR REGRESSION VÀ DỰ BÁO DẤU ẤN VĨ MÔ TƯƠNG LAI (2021-2024)
-    print("🔄 1. Đang huấn luyện Linear Regression (Exp 3)...")
+    # 1. STEP 1: TRAIN LINEAR REGRESSION AND FORECAST FUTURE MACRO FINGERPRINTS (2021-2024)
+    print("🔄 1. Training Linear Regression (Exp 3)...")
     forecaster = LinearRegression()
     forecaster.fit(X_train_exp3, Y_train_exp3)
 
-    # Dự báo 20 chỉ số tương lai cho tập Test (2021-2024)
+    # Forecast 20 future indicators for the Test set (2021-2024)
     Y_pred_future_array = forecaster.predict(X_test_exp3)
     Y_pred_future = pd.DataFrame(
         Y_pred_future_array,
@@ -55,30 +56,39 @@ def run_forecast_then_classify_pipeline(
         index=X_test_exp3.index,
     )
     print(
-        f"   👉 Đã tạo xong {Y_pred_future.shape[0]} Dấu ấn vĩ mô dự báo cho giai đoạn 2021-2024."
+        f"   👉 Successfully generated {Y_pred_future.shape[0]} forecasted macro fingerprints for 2021-2024."
     )
 
-    # 2. BƯỚC 2: TRAIN EXTRATREES CLASSIFIER (EXP 2)
-    print("\n🔄 2. Đang huấn luyện ExtraTreesClassifier (Exp 2)...")
-    classifier = ExtraTreesClassifier(n_estimators=100, random_state=42, n_jobs=-1)
+    # 2. STEP 2: TRAIN EXTRATREES CLASSIFIER (EXP 2)
+    print("\n🔄 2. Training ExtraTreesClassifier (Exp 2)...")
+    classifier = ExtraTreesClassifier(
+        n_estimators=100, random_state=42, n_jobs=-1
+    )
     classifier.fit(X_train_exp2, y_train_exp2)
 
-    # 3. BƯỚC 3: TRUYỀN DẤU ẤN TƯƠNG LAI VÀO CLASSIFIER ĐỂ ĐỊNH DANH QUỐC GIA
-    print("\n🔄 3. Đưa Dấu ấn tương lai vào Classifier để định danh quốc gia...")
+    # 3. STEP 3: PASS FUTURE FINGERPRINTS TO CLASSIFIER FOR COUNTRY IDENTIFICATION
+    print(
+        "\n🔄 3. Feeding forecasted fingerprints into Classifier for country identification..."
+    )
     classes_list = np.unique(y_train_exp2)
 
     y_pipeline_pred = classifier.predict(Y_pred_future)
     y_pipeline_proba = classifier.predict_proba(Y_pred_future)
 
-    # 4. BƯỚC 4: ĐÁNH GIÁ ĐỘ CHÍNH XÁC
+    # 4. STEP 4: EVALUATE ACCURACY
     acc = accuracy_score(y_test_exp2, y_pipeline_pred)
-    top5_acc = top_k_accuracy_score(y_test_exp2, y_pipeline_proba, k=5, labels=classes_list)
+    top5_acc = top_k_accuracy_score(
+        y_test_exp2, y_pipeline_proba, k=5, labels=classes_list
+    )
     f1 = f1_score(y_test_exp2, y_pipeline_pred, average="weighted")
 
     pipeline_results_df = pd.DataFrame(
         [
             {
-                "Pipeline": "LinearRegression (Exp3 Forecast) -> ExtraTrees (Exp2 Classify)",
+                "Pipeline": (
+                    "LinearRegression (Exp3 Forecast) -> ExtraTrees (Exp2"
+                    " Classify)"
+                ),
                 "Test_Accuracy": acc,
                 "Test_Top5_Acc": top5_acc,
                 "Test_F1_Weighted": f1,
@@ -86,16 +96,19 @@ def run_forecast_then_classify_pipeline(
         ]
     )
 
-    print("\n=======================================================")
-    print("🏆 KẾT QUẢ ĐỊNH DANH QUỐC GIA TỪ DẤU ẤN DỰ BÁO TƯƠNG LAI (2021-2024):")
+    print("=======================================================")
+    print(
+        "🏆 COUNTRY IDENTIFICATION RESULTS FROM FORECASTED FINGERPRINTS"
+        " (2021-2024):"
+    )
     print("=======================================================")
     print(pipeline_results_df.to_string(index=False))
 
     output_csv = output_dir / "pipeline_forecast_then_classify_results.csv"
     pipeline_results_df.to_csv(output_csv, index=False, encoding="utf-8")
-    print(f"\n📁 Đã lưu file kết quả Pipeline: {output_csv.name}")
+    print(f"\n📁 Saved Pipeline results file: {output_csv.name}")
 
-    # 5. PHÂN TÍCH VÀ XUẤT BÁO CÁO CÁC NƯỚC BỊ NHẬN DIỆN SAI
+    # 5. ANALYZE AND EXPORT MISCLASSIFIED COUNTRIES REPORT
     y_test_true_codes = label_encoder.inverse_transform(y_test_exp2)
     y_pipeline_pred_codes = label_encoder.inverse_transform(y_pipeline_pred)
 
@@ -107,16 +120,19 @@ def run_forecast_then_classify_pipeline(
         }
     )
 
-    print(f"\n⚠️ Số mẫu bị nhận diện sai: {len(error_df)} / {len(y_test_exp2)}")
-    
+    print(
+        f"\n⚠️ Number of misclassified samples: {len(error_df)} /"
+        f" {len(y_test_exp2)}"
+    )
+
     if not error_df.empty:
-        # a) Lưu CSV báo cáo danh sách các cặp bị đoán sai (kèm tần suất xuất hiện)
+        # a) Save CSV report listing misclassified pairs with frequency counts
         error_summary = error_df.value_counts().reset_index(name="Count")
         error_summary_csv = output_dir / "pipeline_misclassifications.csv"
         error_summary.to_csv(error_summary_csv, index=False, encoding="utf-8")
-        print(f"📁 Đã lưu danh sách các cặp bị đoán sai: {error_summary_csv.name}")
+        print(f"📁 Saved misclassified pairs report: {error_summary_csv.name}")
 
-        # b) Tạo và lưu Ma trận Pivot Lỗi (Pivot Matrix) ra CSV
+        # b) Create and save Error Pivot Matrix to CSV
         error_pivot = pd.crosstab(
             error_df["Real_Country"],
             error_df["Predicted_Country"],
@@ -124,9 +140,9 @@ def run_forecast_then_classify_pipeline(
         )
         error_pivot_csv = output_dir / "pipeline_error_pivot_matrix.csv"
         error_pivot.to_csv(error_pivot_csv, encoding="utf-8")
-        print(f"📁 Đã lưu ma trận Pivot lỗi: {error_pivot_csv.name}")
+        print(f"📁 Saved error pivot matrix: {error_pivot_csv.name}")
 
-        # c) Vẽ và lưu Ảnh Biểu đồ Heatmap Lỗi
+        # c) Plot and save Error Heatmap Chart
         plt.figure(figsize=(10, 8))
         sns.heatmap(
             error_pivot,
@@ -137,7 +153,11 @@ def run_forecast_then_classify_pipeline(
             linewidths=0.5,
             linecolor="gray",
         )
-        plt.title("Misclassification Heatmap (Real vs Predicted Country)", fontsize=12, fontweight="bold")
+        plt.title(
+            "Misclassification Heatmap (Real vs Predicted Country)",
+            fontsize=12,
+            fontweight="bold",
+        )
         plt.xlabel("Predicted Country", fontsize=11)
         plt.ylabel("Real Country", fontsize=11)
         plt.tight_layout()
@@ -145,11 +165,12 @@ def run_forecast_then_classify_pipeline(
         heatmap_path = output_dir / "pipeline_error_heatmap.png"
         plt.savefig(heatmap_path, dpi=300, bbox_inches="tight")
         plt.close()
-        print(f"🖼️ Đã lưu ảnh Heatmap lỗi: {heatmap_path.name}")
+        print(f"🖼️ Saved error heatmap image: {heatmap_path.name}")
     else:
-        print("🎉 Không có lỗi phân loại nào xảy ra!")
+        print("🎉 No classification errors occurred!")
 
     return pipeline_results_df, error_df
+
 
 def plot_misclassification_comparison(
     extra_trees_csv: Path | str | None = None,
@@ -183,7 +204,10 @@ def plot_misclassification_comparison(
 
     # 1. VALIDATE INPUT FILES
     if not extra_trees_csv.exists() or not pipeline_csv.exists():
-        print(f"[ERROR] CSV misclassification file not found: {extra_trees_csv} or {pipeline_csv}")
+        print(
+            "[ERROR] Misclassification CSV file not found:"
+            f" {extra_trees_csv} or {pipeline_csv}"
+        )
         return pd.DataFrame()
 
     # 2. LOAD DATA FROM CSV FILES
@@ -204,8 +228,12 @@ def plot_misclassification_comparison(
     merged["Count_Pipeline"] = merged["Count_Pipeline"].astype(int)
 
     # Sort by total misclassification count in descending order
-    merged["Total_Count"] = merged["Count_Standalone"] + merged["Count_Pipeline"]
-    merged = merged.sort_values("Total_Count", ascending=False).reset_index(drop=True)
+    merged["Total_Count"] = (
+        merged["Count_Standalone"] + merged["Count_Pipeline"]
+    )
+    merged = merged.sort_values("Total_Count", ascending=False).reset_index(
+        drop=True
+    )
 
     # Create category labels "Actual -> Predicted"
     labels = merged["Real_Country"] + " -> " + merged["Predicted_Country"]
@@ -240,7 +268,8 @@ def plot_misclassification_comparison(
     )
     plt.ylabel("Count", fontsize=11, fontweight="bold")
     plt.title(
-        "Misclassification Comparison: Standalone Extra Trees vs. Closed-Loop Pipeline",
+        "Misclassification Comparison: Standalone Extra Trees vs. Closed-Loop"
+        " Pipeline",
         fontsize=12,
         fontweight="bold",
     )
@@ -275,13 +304,18 @@ def plot_misclassification_comparison(
     plt.tight_layout()
 
     # 🖼️ SAVE PLOT AND EXPORT MERGED CSV
-    img_path = output_dir / "misclassification_comparison_standalone_vs_pipeline.png"
+    img_path = (
+        output_dir
+        / "misclassification_comparison_standalone_vs_pipeline.png"
+    )
     plt.savefig(img_path, dpi=300, bbox_inches="tight")
     print(f"🖼️ Misclassification comparison plot saved to: {img_path.name}")
 
     merged_csv_path = output_dir / "misclassification_comparison_merged.csv"
     merged.to_csv(merged_csv_path, index=False, encoding="utf-8")
-    print(f"📁 Merged misclassification summary saved to: {merged_csv_path.name}")
+    print(
+        f"📁 Merged misclassification summary saved to: {merged_csv_path.name}"
+    )
 
     if show_fig:
         plt.show()
@@ -290,30 +324,38 @@ def plot_misclassification_comparison(
 
 
 if __name__ == "__main__":
-    # 1. Load dữ liệu Exp 2 (cho Classifier)
+    # 1. Load Experiment 2 data (for Classifier)
     (
-        X_train_exp2, y_train_exp2,
-        X_val_exp2, y_val_exp2,
-        X_test_exp2, y_test_exp2,
+        X_train_exp2,
+        y_train_exp2,
+        X_val_exp2,
+        y_val_exp2,
+        X_test_exp2,
+        y_test_exp2,
         le,
     ) = load_experiment_2_country_classification(encode_target=True)
 
-    # 2. Load dữ liệu Exp 3 (cho Forecast)
+    # 2. Load Experiment 3 data (for Forecaster)
     (
-        X_train_exp3, y_train_exp3,
-        X_val_exp3, y_val_exp3,
-        X_test_exp3, y_test_exp3
+        X_train_exp3,
+        y_train_exp3,
+        X_val_exp3,
+        y_val_exp3,
+        X_test_exp3,
+        y_test_exp3,
     ) = load_experiment_3()
 
-    # 3. Chạy Pipeline ghép nối Exp3 -> Exp2
-    pipeline_results_df, pipeline_error_df = run_forecast_then_classify_pipeline(
-        X_train_exp3=X_train_exp3,
-        Y_train_exp3=y_train_exp3,
-        X_test_exp3=X_test_exp3,
-        X_train_exp2=X_train_exp2,
-        y_train_exp2=y_train_exp2,
-        y_test_exp2=y_test_exp2,
-        label_encoder=le
+    # 3. Run Chained Pipeline (Exp 3 -> Exp 2)
+    pipeline_results_df, pipeline_error_df = (
+        run_forecast_then_classify_pipeline(
+            X_train_exp3=X_train_exp3,
+            Y_train_exp3=y_train_exp3,
+            X_test_exp3=X_test_exp3,
+            X_train_exp2=X_train_exp2,
+            y_train_exp2=y_train_exp2,
+            y_test_exp2=y_test_exp2,
+            label_encoder=le,
+        )
     )
 
     plot_misclassification_comparison(show_fig=True)

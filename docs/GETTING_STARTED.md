@@ -150,30 +150,44 @@ After execution, all CSV reports, high-resolution figures ($300$ DPI PNGs), and 
 ```text
 results/
 ├── experiment_1/
-│   ├── distance_matrices/              # Annual Euclidean CSVs
-│   ├── cosine_matrices/                # Annual Cosine CSVs
-│   ├── distance_heb_plots/             # D3.js Euclidean HEB HTMLs
-│   └── cosine_heb_plots/               # D3.js Cosine HEB HTMLs
+│   ├── cosine_neighbors.csv                            # Wide-format Cosine nearest neighbors summary
+│   ├── euclidean_neighbors.csv                         # Wide-format Euclidean nearest neighbors summary
+│   ├── cosine_heb_plots/                               # Annual Cosine D3.js HEB HTMLs (2010–2024)
+│   ├── cosine_matrices/                                # Annual Cosine similarity CSVs (2010–2024)
+│   ├── distance_heb_plots/                             # Annual Euclidean D3.js HEB HTMLs (2010–2024)
+│   └── distance_matrices/                              # Annual Euclidean distance CSVs (2010–2024)
 │
 ├── experiment_2/
-│   ├── auto_benchmark_validation_results.csv
-│   ├── extra_trees_test_results.csv
-│   ├── extra_trees_feature_importances.csv
-│   └── extra_trees_misclassification_summary.csv
+│   ├── auto_benchmark_validation_results.csv           # Benchmark comparison of 9 classifiers
+│   ├── auto_benchmark_validation_comparison.png       # Visual performance bar chart
+│   ├── extra_trees_test_results.csv                    # Final Test Set metrics
+│   ├── extra_trees_feature_importances.csv            # Gini importances for all 20 indicators
+│   ├── extra_trees_feature_importances.png            # Feature importance horizontal bar chart
+│   ├── extra_trees_misclassification_summary.csv       # Error counts per misclassified pair
+│   ├── extra_trees_misclassification_matrix.csv        # Error confusion crosstab matrix
+│   └── extra_trees_misclassification_heatmap.png      # Error heatmap visualization
 │
 ├── experiment_3/
-│   ├── forecast_auto_benchmark_val_results.csv
-│   ├── forecast_auto_benchmark_val_feature_details.csv
-│   ├── linear_regression_test_results.csv
-│   ├── linear_regression_test_feature_details.csv
-│   ├── linear_regression_country_stability.csv
-│   ├── global_yearly_boxplot_cosine_similarity.png
-│   ├── global_yearly_boxplot_rmse.png
-│   └── country_stability_interactive.html
+│   ├── forecast_auto_benchmark_val_results.csv        # Benchmark comparison of 9 multi-output regressors
+│   ├── forecast_auto_benchmark_val_feature_details.csv # Per-feature R2, MAE, RMSE metrics
+│   ├── forecast_auto_benchmark_val_comparison.png    # Validation R2 score comparison bar chart
+│   ├── forecast_auto_benchmark_val_r2_heatmap.png       # Per-feature R2 heatmap across 9 models
+│   ├── linear_regression_test_results.csv             # Final Test Set metrics for Linear Regression
+│   ├── linear_regression_test_feature_details.csv     # Test R2, MAE, RMSE breakdown for 20 features
+│   ├── linear_regression_test_feature_r2.png          # Test R2 horizontal bar chart
+│   ├── linear_regression_test_country_year_errors.csv # Per country-year MAE, RMSE, Euclidean & Cosine
+│   ├── linear_regression_country_stability.csv         # Country stability metrics (Mean & Std Dev)
+│   ├── global_yearly_boxplot_cosine_similarity.png    # Global forecast drift boxplot (2021–2024)
+│   ├── global_yearly_boxplot_rmse.png                 # Global RMSE drift boxplot (2021–2024)
+│   └── country_stability_interactive.html             # Interactive 4-quadrant Plotly bubble chart
 │
-└── experiment_4/
-    ├── pipeline_forecast_then_classify_results.csv
-    └── misclassification_comparison_merged.csv
+└── experiment_4/                                       # Closed-Loop Hybrid Pipeline Results
+    ├── pipeline_forecast_then_classify_results.csv    # Final Pipeline Test metrics
+    ├── pipeline_misclassifications.csv                # Pipeline misclassified country pairs
+    ├── pipeline_error_pivot_matrix.csv                # Pipeline error crosstab matrix
+    ├── pipeline_error_heatmap.png                     # Pipeline error heatmap visualization
+    ├── misclassification_comparison_merged.csv        # Merged error count (Standalone vs Pipeline)
+    └── misclassification_comparison_standalone_vs_pipeline.png # Grouped bar chart comparison
 ```
 
 ---

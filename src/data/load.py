@@ -1,5 +1,5 @@
 # src/data/load.py
-# cd "C:\Users\admin\Documents\Code_for_fun\country-data-fingerprint"
+# cd country-data-fingerprint
 # python -m src.data.load
 from pathlib import Path
 import shutil
@@ -8,29 +8,29 @@ from config import paths
 
 
 def populate_draft_files() -> None:
-    """Sao chép toàn bộ nội dung từ file countries_194.csv
+    """Copy all content from countries_194.csv
 
-    dán/ghi đè vào tất cả các file draft từ năm 2010 đến 2024.
+    and paste/overwrite into all draft files from 2010 to 2024.
     """
     source_file = paths.COUNTRY_LIST_CSV
 
     if not source_file.exists():
-        print(f"[ERROR] File nguồn không tồn tại: {source_file}")
+        print(f"[ERROR] Source file does not exist: {source_file}")
         return
 
     for year in paths.YEARS:
         target_file = paths.get_draft_csv_path(year)
         target_file.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source_file, target_file)
-        print(f"[COPY] Đã dán nội dung vào: {target_file.name}")
+        print(f"[COPY] Content pasted into: {target_file.name}")
 
-    print("=> Hoàn thành copy dữ liệu vào tất cả các file draft!")
+    print("=> Completed copying data into all draft files!")
 
 
 def clear_draft_files() -> None:
-    """Xóa sạch nội dung (làm rỗng file) của tất cả các file draft
+    """Clear the content (empty file) of all draft files
 
-    từ năm 2010 đến 2024 mà không xóa bản thân file.
+    from 2010 to 2024 without deleting the file itself.
     """
     for year in paths.YEARS:
         target_file = paths.get_draft_csv_path(year)
@@ -38,21 +38,21 @@ def clear_draft_files() -> None:
         if target_file.exists():
             with open(target_file, "w", encoding="utf-8"):
                 pass
-            print(f"[CLEAR] Đã xóa sạch nội dung file: {target_file.name}")
+            print(f"[CLEAR] Cleared file content: {target_file.name}")
         else:
-            print(f"[SKIP] File không tồn tại: {target_file.name}")
+            print(f"[SKIP] File does not exist: {target_file.name}")
 
-    print("=> Hoàn thành xóa nội dung tất cả các file draft!")
+    print("=> Completed clearing content of all draft files!")
 
 
 def process_and_join_gdp_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu GDP, lọc theo 194 quốc gia chủ quyền,
+    """Read GDP data, filter by 194 sovereign countries,
 
-    sau đó ghép (join) cột GDP của từng năm (2010-2024)
-    vào file draft_{year}.csv tương ứng.
+    then join each year's GDP column (2010-2024)
+    into the corresponding draft_{year}.csv file.
     """
     if input_file is not None:
         gdp_raw_file = input_file
@@ -62,11 +62,11 @@ def process_and_join_gdp_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý GDP [{file_status}]: {gdp_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing GDP [{file_status}]: {gdp_raw_file.name}")
 
     if not gdp_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -89,16 +89,16 @@ def process_and_join_gdp_data(
         df_merged = pd.merge(df_draft, df_gdp_year, left_on="country_code_3", right_on="Country Code", how="left")
         df_merged = df_merged.drop(columns=["Country Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'gdp_per_capita_ppp' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'gdp_per_capita_ppp' ({file_status}) into {draft_file.name}")
 
 
 def process_and_join_gdp_growth_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Tăng trưởng GDP, lọc theo 194 quốc gia,
+    """Read GDP Growth data, filter by 194 countries,
 
-    và ghép (join) cột tăng trưởng của từng năm vào file draft_{year}.csv
+    and join each year's growth column into draft_{year}.csv
     """
     if input_file is not None:
         gdp_growth_raw_file = input_file
@@ -110,11 +110,11 @@ def process_and_join_gdp_growth_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý GDP Growth [{file_status}]: {gdp_growth_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing GDP Growth [{file_status}]: {gdp_growth_raw_file.name}")
 
     if not gdp_growth_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -137,14 +137,14 @@ def process_and_join_gdp_growth_data(
         df_merged = pd.merge(df_draft, df_growth_year, left_on="country_code_3", right_on="Country Code", how="left")
         df_merged = df_merged.drop(columns=["Country Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'gdp_growth_annual_pct' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'gdp_growth_annual_pct' ({file_status}) into {draft_file.name}")
 
 
 def process_and_join_govt_expenditure_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Chi tiêu tiêu dùng cuối cùng của chính phủ (% GDP)."""
+    """Read General government final consumption expenditure (% of GDP) data."""
     if input_file is not None:
         govt_raw_file = input_file
     else:
@@ -155,11 +155,11 @@ def process_and_join_govt_expenditure_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý Chi tiêu chính phủ [{file_status}]: {govt_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing Government Expenditure [{file_status}]: {govt_raw_file.name}")
 
     if not govt_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -181,14 +181,14 @@ def process_and_join_govt_expenditure_data(
         df_merged = pd.merge(df_draft, df_govt_year, left_on="country_code_3", right_on="Country Code", how="left")
         df_merged = df_merged.drop(columns=["Country Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột '{col_name}' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column '{col_name}' ({file_status}) into {draft_file.name}")
 
 
 def process_and_join_inflation_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Lạm phát."""
+    """Read Inflation data."""
     if input_file is not None:
         inflation_raw_file = input_file
     else:
@@ -199,11 +199,11 @@ def process_and_join_inflation_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý Lạm phát [{file_status}]: {inflation_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing Inflation [{file_status}]: {inflation_raw_file.name}")
 
     if not inflation_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -226,14 +226,14 @@ def process_and_join_inflation_data(
         df_merged = pd.merge(df_draft, df_inflation_year, left_on="country_code_3", right_on="Country Code", how="left")
         df_merged = df_merged.drop(columns=["Country Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'inflation_gdp_deflator_annual_pct' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'inflation_gdp_deflator_annual_pct' ({file_status}) into {draft_file.name}")
 
 
 def process_and_join_unemployment_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Tỷ lệ Thất nghiệp."""
+    """Read Unemployment Rate data."""
     if input_file is not None:
         unemployment_raw_file = input_file
     else:
@@ -244,11 +244,11 @@ def process_and_join_unemployment_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý Thất nghiệp [{file_status}]: {unemployment_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing Unemployment [{file_status}]: {unemployment_raw_file.name}")
 
     if not unemployment_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -271,14 +271,14 @@ def process_and_join_unemployment_data(
         df_merged = pd.merge(df_draft, df_unemployment_year, left_on="country_code_3", right_on="Country Code", how="left")
         df_merged = df_merged.drop(columns=["Country Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'unemployment_rate_pct' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'unemployment_rate_pct' ({file_status}) into {draft_file.name}")
 
 
 def process_and_join_population_growth_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Tốc độ tăng dân số."""
+    """Read Population Growth Rate data."""
     if input_file is not None:
         pop_growth_raw_file = input_file
     else:
@@ -289,11 +289,11 @@ def process_and_join_population_growth_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý Tăng dân số [{file_status}]: {pop_growth_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing Population Growth [{file_status}]: {pop_growth_raw_file.name}")
 
     if not pop_growth_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -316,14 +316,14 @@ def process_and_join_population_growth_data(
         df_merged = pd.merge(df_draft, df_pop_growth_year, left_on="country_code_3", right_on="Country Code", how="left")
         df_merged = df_merged.drop(columns=["Country Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'population_growth_annual_pct' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'population_growth_annual_pct' ({file_status}) into {draft_file.name}")
 
 
 def process_and_join_population_total_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Tổng dân số."""
+    """Read Total Population data."""
     if input_file is not None:
         pop_total_raw_file = input_file
     else:
@@ -334,11 +334,11 @@ def process_and_join_population_total_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý Tổng dân số [{file_status}]: {pop_total_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing Total Population [{file_status}]: {pop_total_raw_file.name}")
 
     if not pop_total_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -361,14 +361,14 @@ def process_and_join_population_total_data(
         df_merged = pd.merge(df_draft, df_pop_total_year, left_on="country_code_3", right_on="Country Code", how="left")
         df_merged = df_merged.drop(columns=["Country Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'population_total' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'population_total' ({file_status}) into {draft_file.name}")
 
 
 def process_and_join_urban_population_pct_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Tỷ lệ dân số đô thị."""
+    """Read Urban Population (% of total population) data."""
     if input_file is not None:
         urb_pct_raw_file = input_file
     else:
@@ -379,11 +379,11 @@ def process_and_join_urban_population_pct_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý Dân số đô thị (%)[{file_status}]: {urb_pct_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing Urban Population (%) [{file_status}]: {urb_pct_raw_file.name}")
 
     if not urb_pct_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -406,14 +406,14 @@ def process_and_join_urban_population_pct_data(
         df_merged = pd.merge(df_draft, df_urb_pct_year, left_on="country_code_3", right_on="Country Code", how="left")
         df_merged = df_merged.drop(columns=["Country Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'urban_population_pct' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'urban_population_pct' ({file_status}) into {draft_file.name}")
 
 
 def process_and_join_urban_population_growth_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Tốc độ tăng dân số đô thị."""
+    """Read Urban Population Growth Rate data."""
     if input_file is not None:
         urb_grow_raw_file = input_file
     else:
@@ -424,11 +424,11 @@ def process_and_join_urban_population_growth_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý Tăng dân số đô thị [{file_status}]: {urb_grow_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing Urban Population Growth [{file_status}]: {urb_grow_raw_file.name}")
 
     if not urb_grow_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -451,14 +451,14 @@ def process_and_join_urban_population_growth_data(
         df_merged = pd.merge(df_draft, df_urb_grow_year, left_on="country_code_3", right_on="Country Code", how="left")
         df_merged = df_merged.drop(columns=["Country Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'urban_population_growth_annual_pct' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'urban_population_growth_annual_pct' ({file_status}) into {draft_file.name}")
 
 
 def process_and_join_life_expectancy_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Tuổi thọ trung bình khi sinh."""
+    """Read Life Expectancy at Birth data."""
     if input_file is not None:
         life_exp_raw_file = input_file
     else:
@@ -469,11 +469,11 @@ def process_and_join_life_expectancy_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý Tuổi thọ trung bình [{file_status}]: {life_exp_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing Life Expectancy [{file_status}]: {life_exp_raw_file.name}")
 
     if not life_exp_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -496,14 +496,14 @@ def process_and_join_life_expectancy_data(
         df_merged = pd.merge(df_draft, df_life_exp_year, left_on="country_code_3", right_on="Country Code", how="left")
         df_merged = df_merged.drop(columns=["Country Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'life_expectancy_years' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'life_expectancy_years' ({file_status}) into {draft_file.name}")
 
 
 def process_and_join_fertility_rate_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Tỷ lệ sinh."""
+    """Read Fertility Rate data."""
     if input_file is not None:
         fertility_raw_file = input_file
     else:
@@ -514,11 +514,11 @@ def process_and_join_fertility_rate_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý Tỷ lệ sinh [{file_status}]: {fertility_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing Fertility Rate [{file_status}]: {fertility_raw_file.name}")
 
     if not fertility_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -541,14 +541,14 @@ def process_and_join_fertility_rate_data(
         df_merged = pd.merge(df_draft, df_fertility_year, left_on="country_code_3", right_on="Country Code", how="left")
         df_merged = df_merged.drop(columns=["Country Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'fertility_rate_births_per_woman' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'fertility_rate_births_per_woman' ({file_status}) into {draft_file.name}")
 
 
 def process_and_join_under_5_mortality_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Tỷ lệ tử vong ở trẻ dưới 5 tuổi."""
+    """Read Under-5 Mortality Rate data."""
     if input_file is not None:
         mortality_raw_file = input_file
     else:
@@ -559,11 +559,11 @@ def process_and_join_under_5_mortality_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý Tử vong dưới 5 tuổi [{file_status}]: {mortality_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing Under-5 Mortality [{file_status}]: {mortality_raw_file.name}")
 
     if not mortality_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -586,14 +586,14 @@ def process_and_join_under_5_mortality_data(
         df_merged = pd.merge(df_draft, df_mortality_year, left_on="country_code_3", right_on="Country Code", how="left")
         df_merged = df_merged.drop(columns=["Country Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'under_5_mortality_rate_per_1000' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'under_5_mortality_rate_per_1000' ({file_status}) into {draft_file.name}")
 
 
 def process_and_join_access_to_electricity_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Tỷ lệ tiếp cận điện lưới."""
+    """Read Access to Electricity data."""
     if input_file is not None:
         elec_raw_file = input_file
     else:
@@ -604,11 +604,11 @@ def process_and_join_access_to_electricity_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý Tiếp cận điện lưới [{file_status}]: {elec_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing Access to Electricity [{file_status}]: {elec_raw_file.name}")
 
     if not elec_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -631,13 +631,13 @@ def process_and_join_access_to_electricity_data(
         df_merged = pd.merge(df_draft, df_elec_year, left_on="country_code_3", right_on="Country Code", how="left")
         df_merged = df_merged.drop(columns=["Country Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'access_to_electricity_pct' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'access_to_electricity_pct' ({file_status}) into {draft_file.name}")
 
 def process_and_join_owid_co2_emissions_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu CO2 emissions per capita từ OWID (Long format)."""
+    """Read CO2 emissions per capita data from OWID (Long format)."""
     if input_file is not None:
         co2_raw_file = input_file
     else:
@@ -648,11 +648,11 @@ def process_and_join_owid_co2_emissions_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý Phát thải CO2 OWID [{file_status}]: {co2_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing OWID CO2 Emissions [{file_status}]: {co2_raw_file.name}")
 
     if not co2_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -680,14 +680,14 @@ def process_and_join_owid_co2_emissions_data(
         df_merged = pd.merge(df_draft, df_co2_year, left_on="country_code_3", right_on="Code", how="left")
         df_merged = df_merged.drop(columns=["Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'co2_emissions_per_capita' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'co2_emissions_per_capita' ({file_status}) into {draft_file.name}")
 
 
 def process_and_join_adult_schooling_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Số năm đi học trung bình từ OWID (Long format)."""
+    """Read Mean years of schooling data from OWID (Long format)."""
     if input_file is not None:
         schooling_raw_file = input_file
     else:
@@ -698,11 +698,11 @@ def process_and_join_adult_schooling_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý Số năm đi học OWID [{file_status}]: {schooling_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing OWID Mean Years of Schooling [{file_status}]: {schooling_raw_file.name}")
 
     if not schooling_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -730,13 +730,13 @@ def process_and_join_adult_schooling_data(
         df_merged = pd.merge(df_draft, df_schooling_year, left_on="country_code_3", right_on="Code", how="left")
         df_merged = df_merged.drop(columns=["Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'mean_years_of_schooling_adults' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'mean_years_of_schooling_adults' ({file_status}) into {draft_file.name}")
 
 def process_and_join_internet_users_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Tỷ lệ người dùng Internet."""
+    """Read Internet Users (% of population) data."""
     if input_file is not None:
         net_raw_file = input_file
     else:
@@ -747,11 +747,11 @@ def process_and_join_internet_users_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý Người dùng Internet [{file_status}]: {net_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing Internet Users [{file_status}]: {net_raw_file.name}")
 
     if not net_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -774,14 +774,14 @@ def process_and_join_internet_users_data(
         df_merged = pd.merge(df_draft, df_net_year, left_on="country_code_3", right_on="Country Code", how="left")
         df_merged = df_merged.drop(columns=["Country Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'internet_users_pct_population' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'internet_users_pct_population' ({file_status}) into {draft_file.name}")
 
 
 def process_and_join_trade_pct_gdp_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Tỷ lệ Thương mại (% GDP)."""
+    """Read Trade (% of GDP) data."""
     if input_file is not None:
         trade_raw_file = input_file
     else:
@@ -792,11 +792,11 @@ def process_and_join_trade_pct_gdp_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý Thương mại (% GDP) [{file_status}]: {trade_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing Trade (% of GDP) [{file_status}]: {trade_raw_file.name}")
 
     if not trade_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -819,14 +819,14 @@ def process_and_join_trade_pct_gdp_data(
         df_merged = pd.merge(df_draft, df_trade_year, left_on="country_code_3", right_on="Country Code", how="left")
         df_merged = df_merged.drop(columns=["Country Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'trade_pct_gdp' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'trade_pct_gdp' ({file_status}) into {draft_file.name}")
 
 
 def process_and_join_agriculture_pct_gdp_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Tỷ trọng Nông nghiệp trong GDP."""
+    """Read Agriculture, forestry, and fishing, value added (% of GDP) data."""
     if input_file is not None:
         agr_raw_file = input_file
     else:
@@ -837,11 +837,11 @@ def process_and_join_agriculture_pct_gdp_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý Nông nghiệp (% GDP) [{file_status}]: {agr_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing Agriculture (% of GDP) [{file_status}]: {agr_raw_file.name}")
 
     if not agr_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -864,14 +864,14 @@ def process_and_join_agriculture_pct_gdp_data(
         df_merged = pd.merge(df_draft, df_agr_year, left_on="country_code_3", right_on="Country Code", how="left")
         df_merged = df_merged.drop(columns=["Country Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'agriculture_pct_gdp' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'agriculture_pct_gdp' ({file_status}) into {draft_file.name}")
 
 
 def process_and_join_industry_pct_gdp_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Tỷ trọng Công nghiệp trong GDP."""
+    """Read Industry (including construction), value added (% of GDP) data."""
     if input_file is not None:
         ind_raw_file = input_file
     else:
@@ -882,11 +882,11 @@ def process_and_join_industry_pct_gdp_data(
         )
 
     country_file = paths.COUNTRY_LIST_CSV
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý Công nghiệp (% GDP) [{file_status}]: {ind_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing Industry (% of GDP) [{file_status}]: {ind_raw_file.name}")
 
     if not ind_raw_file.exists() or not country_file.exists():
-        print(f"[ERROR] File không tồn tại!")
+        print(f"[ERROR] File does not exist!")
         return
 
     df_countries = pd.read_csv(country_file)
@@ -909,27 +909,27 @@ def process_and_join_industry_pct_gdp_data(
         df_merged = pd.merge(df_draft, df_ind_year, left_on="country_code_3", right_on="Country Code", how="left")
         df_merged = df_merged.drop(columns=["Country Code"], errors="ignore")
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
-        print(f"[SUCCESS] Đã ghép cột 'industry_pct_gdp' ({file_status}) vào {draft_file.name}")
+        print(f"[SUCCESS] Joined column 'industry_pct_gdp' ({file_status}) into {draft_file.name}")
 
 
 def process_and_join_services_pct_gdp_data(
     use_imputed: bool = True,
     input_file: Path | None = None,
 ) -> None:
-    """Đọc dữ liệu Tỷ trọng Dịch vụ trong GDP (Imputed hoặc Chưa Imputed),
+    """Read Services, value added (% of GDP) data (Imputed or Unimputed),
 
-    lọc theo 194 quốc gia, và ghép (join) cột của từng năm (2010-2024)
-    vào file draft_{year}.csv với tên cột 'services_pct_gdp'.
+    filter by 194 countries, and join each year's column (2010-2024)
+    into draft_{year}.csv with column name 'services_pct_gdp'.
 
     Parameters
     ----------
     use_imputed : bool, default=True
-        Nếu True, đọc file đã Impute (paths.RAW_SERVICES_IMPUTED_CSV).
-        Nếu False, đọc file chưa Impute gốc (paths.RAW_SERVICES_CSV).
+        If True, reads the imputed file (paths.RAW_SERVICES_IMPUTED_CSV).
+        If False, reads the raw unimputed file (paths.RAW_SERVICES_CSV).
     input_file : Path, optional
-        Tùy chọn truyền đường dẫn file trực tiếp (nếu muốn chỉ định file riêng).
+        Optional file path override (if specifying a custom file path).
     """
-    # 1. Xác định đường dẫn file dựa vào cờ use_imputed
+    # 1. Determine file path based on use_imputed flag
     if input_file is not None:
         srv_raw_file = input_file
     else:
@@ -941,17 +941,17 @@ def process_and_join_services_pct_gdp_data(
 
     country_file = paths.COUNTRY_LIST_CSV
 
-    file_status = "Đã Impute" if use_imputed else "Chưa Impute (Raw)"
-    print(f"🔄 Đang xử lý file Dịch vụ (% GDP) [{file_status}]: {srv_raw_file.name}")
+    file_status = "Imputed" if use_imputed else "Unimputed (Raw)"
+    print(f"🔄 Processing Services (% of GDP) file [{file_status}]: {srv_raw_file.name}")
 
     if not srv_raw_file.exists():
-        print(f"[ERROR] Không tìm thấy file Dịch vụ: {srv_raw_file}")
+        print(f"[ERROR] Services file not found: {srv_raw_file}")
         return
     if not country_file.exists():
-        print(f"[ERROR] Không tìm thấy file 194 quốc gia: {country_file}")
+        print(f"[ERROR] 194 Countries file not found: {country_file}")
         return
 
-    # 2. Đọc dữ liệu
+    # 2. Read data
     df_countries = pd.read_csv(country_file)
     df_srv_raw = pd.read_csv(srv_raw_file, skiprows=4)
 
@@ -959,22 +959,22 @@ def process_and_join_services_pct_gdp_data(
         df_srv_raw["Country Code"].isin(df_countries["country_code_3"])
     ].copy()
 
-    # 3. Ghép vào từng file draft_{year}.csv
+    # 3. Join into each draft_{year}.csv file
     for year in paths.YEARS:
         year_str = str(year)
         draft_file = paths.get_draft_csv_path(year)
 
         if not draft_file.exists():
-            print(f"[SKIP] File draft chưa tồn tại: {draft_file.name}")
+            print(f"[SKIP] Draft file does not exist yet: {draft_file.name}")
             continue
 
         if year_str not in df_srv_filtered.columns:
-            print(f"[WARNING] Năm {year_str} không có trong file Dịch vụ!")
+            print(f"[WARNING] Year {year_str} is not in the Services file!")
             continue
 
         df_draft = pd.read_csv(draft_file)
 
-        # Nếu cột 'services_pct_gdp' đã tồn tại trước đó, xóa đi để đè dữ liệu mới
+        # If 'services_pct_gdp' column already exists, drop it to overwrite with new data
         if "services_pct_gdp" in df_draft.columns:
             df_draft = df_draft.drop(columns=["services_pct_gdp"])
 
@@ -995,43 +995,43 @@ def process_and_join_services_pct_gdp_data(
 
         df_merged.to_csv(draft_file, index=False, encoding="utf-8")
         print(
-            f"[SUCCESS] Đã ghép cột 'services_pct_gdp' ({file_status}) vào file {draft_file.name}"
+            f"[SUCCESS] Joined column 'services_pct_gdp' ({file_status}) into file {draft_file.name}"
         )
 
-    print(f"=> Hoàn tất quá trình xử lý và ghép dữ liệu Dịch vụ (% GDP) [{file_status}]!")
+    print(f"=> Finished processing and joining Services (% of GDP) data [{file_status}]!")
 
 def build_and_populate_all_draft_data(
     use_imputed: bool = True,
     clear_existing: bool = True,
 ) -> None:
-    """Hàm tổng hợp: Khởi tạo các file draft và nạp/ghép toàn bộ 20 chỉ số kinh tế - xã hội.
+    """Master function: Initialize draft files and load/join all 20 socio-economic indicators.
 
     Parameters
     ----------
     use_imputed : bool, default=True
-        Nếu True, nạp các file dữ liệu đã Impute cho tất cả các chỉ số.
-        Nếu False, nạp các file dữ liệu gốc chưa Impute (Raw).
+        If True, loads imputed data files for all indicators.
+        If False, loads raw unimputed data files.
     clear_existing : bool, default=True
-        Nếu True, xóa sạch nội dung các file draft cũ trước khi nạp lại.
+        If True, clears content of existing draft files before reloading.
     """
-    file_status = "ĐÃ IMPUTE" if use_imputed else "CHƯA IMPUTE (RAW)"
+    file_status = "IMPUTED" if use_imputed else "UNIMPUTED (RAW)"
     
     print("=======================================================")
-    print(f"🚀 BẮT ĐẦU XỬ LÝ VÀ GHÉP TẤT CẢ CHỈ SỐ DRAFT [{file_status}]")
+    print(f"🚀 STARTING PROCESSING AND JOINING ALL DRAFT INDICATORS [{file_status}]")
     print("=======================================================\n")
 
-    # 1. Xóa nội dung draft cũ nếu bật cờ clear_existing
+    # 1. Clear old draft content if clear_existing flag is enabled
     if clear_existing:
-        print("--- Xóa nội dung draft ---")
+        print("--- Clearing draft content ---")
         clear_draft_files()
 
-    # 2. Khởi tạo khung file draft
-    print("--- Nạp dữ liệu nền vào draft ---")
+    # 2. Initialize draft file frames
+    print("--- Loading baseline data into draft ---")
     populate_draft_files()
 
-    print(f"\n--- Bắt đầu ghép 20 chỉ số [{file_status}] ---")
+    print(f"\n--- Starting joining 20 indicators [{file_status}] ---")
 
-    # 3. Danh sách tất cả các hàm ghép chỉ số
+    # 3. List of all indicator joining functions
     join_functions = [
         process_and_join_gdp_data,
         process_and_join_gdp_growth_data,
@@ -1055,18 +1055,17 @@ def build_and_populate_all_draft_data(
         process_and_join_services_pct_gdp_data,
     ]
 
-    # 4. Vòng lặp tự động gọi từng hàm với cờ use_imputed
+    # 4. Automatically loop and call each function with use_imputed flag
     for func in join_functions:
         try:
             func(use_imputed=use_imputed)
         except TypeError:
-            # Nếu hàm đó không nhận tham số use_imputed (ví dụ OWID CO2) thì gọi hàm không tham số
             func()
 
     print("\n=======================================================")
-    print(f"🎉 HOÀN TẤT TẤT CẢ BƯỚC NẠP VÀ GHÉP DỮ LIỆU DRAFT [{file_status}]!")
+    print(f"🎉 COMPLETED ALL DRAFT DATA LOADING AND JOINING STEPS [{file_status}]!")
     print("=======================================================")
 
 if __name__ == "__main__":
-    # Chạy ghép toàn bộ dữ liệu CHƯA IMPUTE (Gốc) hoặc dữ liệu ĐÃ IMPUTE
-    build_and_populate_all_draft_data(use_imputed=False)
+    # Execute joining all UNIMPUTED (Raw) data or IMPUTED data
+    build_and_populate_all_draft_data(use_imputed=True)
